@@ -11,12 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Source\Runtime\Main.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Engine\Source\Runtime\Core\Base\Common.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Base\Define.h" />
     <ClInclude Include="Engine\Source\Runtime\Core\Base\Macro.h" />
+    <ClInclude Include="Engine\Source\Runtime\Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Source\Editor\Main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -24,6 +25,7 @@
     <ProjectGuid>{197df763-18ce-4a74-bfdf-d8bb9e0d356b}</ProjectGuid>
     <RootNamespace>SnowyArkEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>SnowyArkRuntime</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

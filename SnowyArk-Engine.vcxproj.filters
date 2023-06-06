@@ -16,11 +16,15 @@
     <Filter Include="Core\Base">
       <UniqueIdentifier>{7bafe0ed-9dc5-4e12-93d4-1c1859bbff6b}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Engine\Source\Runtime\Main.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
+    <Filter Include="Function\Rendering">
+      <UniqueIdentifier>{7e52aaaf-6287-4c4e-99aa-68485074a9e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function\Rendering\Interface">
+      <UniqueIdentifier>{54e84953-c002-4506-860a-b573ead470bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function\Rendering\Interface\Vulkan">
+      <UniqueIdentifier>{76f0c97c-678e-4c60-bf8a-d84ec9c18716}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Source\Runtime\Core\Base\Macro.h">
@@ -32,5 +36,13 @@
     <ClInclude Include="Engine\Source\Runtime\Core\Base\Common.h">
       <Filter>Core\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Function\Rendering\Interface\Vulkan\VulkanRHI.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Source\Editor\Main.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

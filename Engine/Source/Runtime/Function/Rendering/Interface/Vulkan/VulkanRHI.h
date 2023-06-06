@@ -1,4 +1,5 @@
-ï»¿#include "Engine/Source/Runtime/Core/Base/Common.h"
+#pragma once
+#include "Engine/Source/Runtime/Core/Base/Common.h"
 
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
@@ -855,19 +856,19 @@ private:
     {
         SwapChainSupportDetails details;
 
-        // æŸ¥è¯¢åŸºç¡€è¡¨é¢ç‰¹æ€§
+        // ²éÑ¯»ù´¡±íÃæÌØĞÔ
         auto&& [getCapabilitiesResult, capabilities] = device.getSurfaceCapabilitiesKHR(m_Surface);
         CHECK_VK_RESULT(getCapabilitiesResult, "Failed to get Surface Capabilities!")
         {
             details.capabilities = capabilities;
         }
-        // æŸ¥è¯¢è¡¨é¢æ”¯æŒæ ¼å¼
+        // ²éÑ¯±íÃæÖ§³Ö¸ñÊ½
         auto&& [getFormatsResult, formats] = device.getSurfaceFormatsKHR(m_Surface);
         CHECK_VK_RESULT(getFormatsResult, "Failed to get Surface Formats!")
         {
             details.formats = formats;
         }
-        // æŸ¥è¯¢æ”¯æŒçš„å‘ˆç°æ–¹å¼
+        // ²éÑ¯Ö§³ÖµÄ³ÊÏÖ·½Ê½
         auto&& [getPresentModesResult, presentModes] = device.getSurfacePresentModesKHR(m_Surface);
         CHECK_VK_RESULT(getPresentModesResult, "Failed to get Surface PresentModes!")
         {
@@ -951,18 +952,4 @@ private:
         return shaderModule;
     }
 };
-}
-
-int main()
-{
-    try
-    {
-        auto app = std::make_unique<Ark::Application>();
-        app->Run();
-    } catch(const std::exception& e) 
-    {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
 }
