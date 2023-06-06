@@ -1,26 +1,10 @@
-﻿#define GLFW_INCLUDE_VULKAN
-
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#define  VULKAN_HPP_NO_EXCEPTIONS 1
+﻿#include "Core/Base/Common.h"
 
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
-
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <functional>
-#include <cstdlib>
-#include <algorithm>
-#include <format>
-#include <chrono>
-#include <span>
-#include <set>
 
 #pragma comment(lib, "vulkan-1.lib")
 #pragma comment(lib, "glfw3.lib")
@@ -47,21 +31,7 @@ constexpr bool g_EnableValidationLayers = false;
 constexpr bool g_EnableValidationLayers = true;
 #endif
 
-#define LOG(x) std::cout << std::format("[{:%X}] {}\n", std::chrono::system_clock::now() + std::chrono::hours(8), x);
 
-#define CHECK_VK_RESULT(result, log) \
-    if(result != vk::Result::eSuccess) \
-    { \
-        throw std::runtime_error(log); \
-    } \
-    else \
-
-#define CHECK_VK_RESULT_TARGET(result, log, target) \
-    if(result != target) \
-    { \
-        throw std::runtime_error(log); \
-    } \
-    else \
 
 void CreateDebugUtilsMessengerEXT(vk::Instance instance, const vk::DebugUtilsMessengerCreateInfoEXT& createInfo, vk::Optional<const vk::AllocationCallbacks> allocator,
                                         vk::DebugUtilsMessengerEXT* pCallback)
@@ -134,9 +104,9 @@ private:
     vk::CommandPool m_CommandPool;
     std::vector<vk::CommandBuffer> m_CommandBuffers;
 
-    std::vector<VkSemaphore> m_ImageAvailableSemaphores;
-    std::vector<VkSemaphore> m_RenderFinishedSemaphores;
-    std::vector<VkFence> m_InFlightFences;
+    std::vector<vk::Semaphore> m_ImageAvailableSemaphores;
+    std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
+    std::vector<vk::Fence> m_InFlightFences;
     size_t m_CurrentFrame = 0;
 
 private:
@@ -187,35 +157,35 @@ private:
     {
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            vkDestroySemaphore(m_Device, m_ImageAvailableSemaphores[i], nullptr);
-            vkDestroySemaphore(m_Device, m_RenderFinishedSemaphores[i], nullptr);
-            vkDestroyFence(m_Device, m_InFlightFences[i], nullptr);
+            m_Device.destroySemaphore(m_ImageAvailableSemaphores[i], nullptr);
+            m_Device.destroySemaphore(m_RenderFinishedSemaphores[i], nullptr);
+            m_Device.destroyFence(m_InFlightFences[i], nullptr);
         }
         
-        vkDestroyCommandPool(m_Device, m_CommandPool, nullptr);
+        m_Device.destroyCommandPool(m_CommandPool, nullptr);
 
-        for (auto framebuffer : m_SwapChainFramebuffers)
+        for (auto&& framebuffer : m_SwapChainFramebuffers)
         {
-            vkDestroyFramebuffer(m_Device, framebuffer, nullptr);
+            m_Device.destroyFramebuffer(framebuffer, nullptr);
         }
 
-        vkDestroyPipeline(m_Device, m_GraphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(m_Device, m_PipelineLayout, nullptr);
-        vkDestroyRenderPass(m_Device, m_RenderPass, nullptr);
+        m_Device.destroyPipeline(m_GraphicsPipeline, nullptr);
+        m_Device.destroyPipelineLayout(m_PipelineLayout, nullptr);
+        m_Device.destroyRenderPass(m_RenderPass, nullptr);
 
         for (auto imageView : m_SwapChainImageViews)
         {
-            vkDestroyImageView(m_Device, imageView, nullptr);
+            m_Device.destroyImageView(imageView, nullptr);
         }
-        vkDestroySwapchainKHR(m_Device, m_SwapChain, nullptr);
-        vkDestroyDevice(m_Device, nullptr);
+        m_Device.destroySwapchainKHR(m_SwapChain, nullptr);
+        m_Device.destroy(nullptr);
         if (g_EnableValidationLayers)
         {
             DestoryDebugUtilsMessengerEXT(m_Instance, &m_Callback, nullptr);
         }
 
-        vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
-        vkDestroyInstance(m_Instance, nullptr);
+        m_Instance.destroySurfaceKHR(m_Surface, nullptr);
+        m_Instance.destroy(nullptr);
 
         glfwDestroyWindow(m_Window);
         glfwTerminate();
@@ -695,24 +665,28 @@ private:
         m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
         m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
-        VkSemaphoreCreateInfo semaphoreInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-        };
-        VkFenceCreateInfo fenceInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT
-        };
+        auto&& semaphoreInfo = vk::SemaphoreCreateInfo();
+        auto&& fenceInfo = vk::FenceCreateInfo().setFlags(vk::FenceCreateFlagBits::eSignaled);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            if (vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(m_Device, &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
-                vkCreateFence(m_Device, &fenceInfo, nullptr, &m_InFlightFences[i]) != VK_SUCCESS)
+            auto&& [createImageAvailableSemaphoreResult, imageAvailableSemaphore] = m_Device.createSemaphore(semaphoreInfo, nullptr);
+            CHECK_VK_RESULT(createImageAvailableSemaphoreResult, "Failed to create synchronization objects for a frame!")
             {
-                throw std::runtime_error("Failed to create synchronization objects for a frame!");
+                m_ImageAvailableSemaphores[i] = imageAvailableSemaphore;
             }
+            auto&& [createRenderFinishedSemaphoreResult, renderFinishedSemaphore] = m_Device.createSemaphore(semaphoreInfo, nullptr);
+            CHECK_VK_RESULT(createRenderFinishedSemaphoreResult, "Failed to create synchronization objects for a frame!")
+            {
+                m_RenderFinishedSemaphores[i] = renderFinishedSemaphore;
+            }
+            auto&& [createInFlightFencesResult, inFlightFences] = m_Device.createFence(fenceInfo, nullptr);
+            CHECK_VK_RESULT(createInFlightFencesResult, "Failed to create synchronization objects for a frame!")
+            {
+                m_InFlightFences[i] = inFlightFences;
+            }
+
         }
-        
         LOG("Create Semaphores, Complete.")
     }
 
@@ -743,47 +717,33 @@ private:
     
     void DrawFrame()
     {
-        vkWaitForFences(m_Device, 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-        vkResetFences(m_Device, 1, &m_InFlightFences[m_CurrentFrame]);
+        auto&& waitForFencesResult = m_Device.waitForFences(m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+        m_Device.resetFences(m_InFlightFences[m_CurrentFrame]);
 
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(m_Device, m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+        auto&& acquireNextImageResult = m_Device.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 
         RecordCommandBuffer(m_CommandBuffers, imageIndex);
 
-        VkSubmitInfo submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO
-        };
-        VkSemaphore waitSemaphores[] = {m_ImageAvailableSemaphores[m_CurrentFrame]};
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = waitSemaphores;
-        submitInfo.pWaitDstStageMask = waitStages;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = (VkCommandBuffer*)&m_CommandBuffers[imageIndex];
+        std::array<vk::PipelineStageFlags, 1> waitDstStageMask = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
 
-        VkSemaphore signalSemaphores[] = {m_RenderFinishedSemaphores[m_CurrentFrame]};
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
+        auto&& submitInfo = vk::SubmitInfo()
+            .setWaitSemaphores(m_ImageAvailableSemaphores[m_CurrentFrame])
+            .setSignalSemaphores(m_RenderFinishedSemaphores[m_CurrentFrame])
+            .setCommandBuffers(m_CommandBuffers[imageIndex])
+            .setWaitDstStageMask(waitDstStageMask);
 
-        if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, m_InFlightFences[m_CurrentFrame]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to submit draw command buffer!");
-        }
+        auto&& submitResult = m_GraphicsQueue.submit(submitInfo, m_InFlightFences[m_CurrentFrame]);
+        CHECK_VK_RESULT(submitResult, "Failed to submit draw command buffer!");
 
-        VkPresentInfoKHR presentInfo = {
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = signalSemaphores
-        };
-        VkSwapchainKHR swapChains[] = {m_SwapChain};
-        presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = swapChains;
-        presentInfo.pImageIndices = &imageIndex;
-        if (vkQueuePresentKHR(m_PresentQueue, &presentInfo) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to present image!");
-        }
+        auto&& presentInfo = vk::PresentInfoKHR()
+            .setWaitSemaphores(m_RenderFinishedSemaphores[m_CurrentFrame])
+            .setSwapchains(m_SwapChain)
+            .setImageIndices(imageIndex);
+
+        auto&& presentResult = m_PresentQueue.presentKHR(presentInfo);
+        CHECK_VK_RESULT(presentResult, "Failed to present image!");
+
         //vkQueueWaitIdle(m_PresentQueue);
         m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
@@ -795,10 +755,9 @@ private:
     bool CheckValidationLayerSupport()
     {
         LOG("Check Validation Layer Support, Start.");
-        uint32_t layerCount;
-        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-        std::vector<VkLayerProperties> availableLayers(layerCount);
-        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        auto&& [result, availableLayers] = vk::enumerateInstanceLayerProperties();
+        CHECK_VK_RESULT(result, "Failed to enumerate instance layer properties!");
 
         for (const char* layerName : g_ValidationLayers)
         {
@@ -821,16 +780,14 @@ private:
         return true;
     }
 
-    bool CheckDeviceExtensionSupport(VkPhysicalDevice device)
+    bool CheckDeviceExtensionSupport(vk::PhysicalDevice device)
     {
         LOG("Check Device Extension Support, Start.");
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        auto&& [result, availableExtensions] = device.enumerateDeviceExtensionProperties(nullptr);
+        CHECK_VK_RESULT(result, "Failed to enumerate device extension properties!");
 
         std::set<std::string> requiredExtensions(g_DeviceExtensions.begin(), g_DeviceExtensions.end());
-
         for (const auto& extension : availableExtensions)
         {
             requiredExtensions.erase(extension.extensionName);
@@ -899,29 +856,24 @@ private:
         SwapChainSupportDetails details;
 
         // 查询基础表面特性
+        auto&& [getCapabilitiesResult, capabilities] = device.getSurfaceCapabilitiesKHR(m_Surface);
+        CHECK_VK_RESULT(getCapabilitiesResult, "Failed to get Surface Capabilities!")
         {
-            auto&& [result, capabilities] = device.getSurfaceCapabilitiesKHR(m_Surface);
-            if (result == vk::Result::eSuccess)
-            {
-                details.capabilities = capabilities;
-            }
+            details.capabilities = capabilities;
         }
         // 查询表面支持格式
+        auto&& [getFormatsResult, formats] = device.getSurfaceFormatsKHR(m_Surface);
+        CHECK_VK_RESULT(getFormatsResult, "Failed to get Surface Formats!")
         {
-            auto&& [result, formats] = device.getSurfaceFormatsKHR(m_Surface);
-            if (result == vk::Result::eSuccess)
-            {
-                details.formats = formats;
-            }
+            details.formats = formats;
         }
         // 查询支持的呈现方式
+        auto&& [getPresentModesResult, presentModes] = device.getSurfacePresentModesKHR(m_Surface);
+        CHECK_VK_RESULT(getPresentModesResult, "Failed to get Surface PresentModes!")
         {
-            auto&& [result, presentModes] = device.getSurfacePresentModesKHR(m_Surface);
-            if (result == vk::Result::eSuccess)
-            {
-                details.presentModes = presentModes;
-            }
+            details.presentModes = presentModes;
         }
+
         return details;
     }
 
@@ -949,7 +901,8 @@ private:
             if (availablePresentMode == vk::PresentModeKHR::eMailbox)
             {
                 return availablePresentMode;
-            } else
+            }
+            else
             {
                 bestMode = vk::PresentModeKHR::eImmediate;
             }
@@ -988,27 +941,23 @@ private:
 
     VkShaderModule CreateShaderModule(const std::vector<char>& code)
     {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        auto&& createInfo = vk::ShaderModuleCreateInfo()
+            .setCodeSize(code.size())
+            .setPCode(reinterpret_cast<const uint32_t*>(code.data()));
 
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(m_Device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create shader module!");
-        }
+        auto&& [result, shaderModule] = m_Device.createShaderModule(createInfo, nullptr);
+        CHECK_VK_RESULT(result, "Failed to create shader module!");
+
         return shaderModule;
     }
 };
 }
-namespace Ark = Snowy::Ark;
 
 int main()
 {
     try
     {
-        Ark::Application* app = new Ark::Application{};
+        auto app = std::make_unique<Ark::Application>();
         app->Run();
     } catch(const std::exception& e) 
     {
