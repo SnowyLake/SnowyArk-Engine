@@ -66,7 +66,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -83,7 +83,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

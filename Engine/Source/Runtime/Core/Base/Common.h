@@ -10,8 +10,8 @@
 #include <span>
 #include <set>
 
-#include "Macro.h"
-#include "Define.h"
+#include "Engine/Source/Runtime/Core/Base/Macro.h"
+#include "Engine/Source/Runtime/Core/Base/Define.h"
 
 namespace Snowy::Ark
 {
