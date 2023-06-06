@@ -13,10 +13,24 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{5f5e9e16-9e83-4a8a-964a-15f67364ae42}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Base">
+      <UniqueIdentifier>{7bafe0ed-9dc5-4e12-93d4-1c1859bbff6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Source\Runtime\Main.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Macro.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Define.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Common.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

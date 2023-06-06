@@ -13,6 +13,11 @@
   <ItemGroup>
     <ClCompile Include="Engine\Source\Runtime\Main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Common.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Define.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Base\Macro.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
