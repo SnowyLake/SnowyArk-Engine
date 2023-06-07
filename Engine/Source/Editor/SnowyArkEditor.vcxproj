@@ -11,13 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Source\Runtime\Core\Base\Common.h" />
-    <ClInclude Include="Engine\Source\Runtime\Core\Base\Define.h" />
-    <ClInclude Include="Engine\Source\Runtime\Core\Base\Macro.h" />
-    <ClInclude Include="Engine\Source\Runtime\Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Engine\Source\Editor\Main.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -25,7 +19,7 @@
     <ProjectGuid>{197df763-18ce-4a74-bfdf-d8bb9e0d356b}</ProjectGuid>
     <RootNamespace>SnowyArkEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>SnowyArkRuntime</ProjectName>
+    <ProjectName>SnowyArkEditor</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -54,12 +48,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)\Build\$(Configuration)\</OutDir>
-    <IntDir>Build\$(Configuration).Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)Build\Engine\Source\Editor\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Build\Engine\Source\Editor\$(Configuration).Intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)\Bulid\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>Bulid\$(Platform)\Intermediate\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)Build\Engine\Source\Editor\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)Build\Engine\Source\Editor\$(Configuration).Intermediate\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -68,12 +62,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Lib;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\lib-vc2022</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Lib;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\lib-vc2022;D:\DevProjects\Graphics\SnowyArk-Engine\Build\Engine\Source\Runtime\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,14 +79,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Lib;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\lib-vc2022</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Lib;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\lib-vc2022;D:\DevProjects\Graphics\SnowyArk-Engine\Build\Engine\Source\Runtime\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

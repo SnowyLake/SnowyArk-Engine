@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{65451de0-812c-413a-837a-975ef25b8d8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Base">
+      <UniqueIdentifier>{c07b16dd-e582-440e-8b9e-f2d6123976ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function">
+      <UniqueIdentifier>{9ed02c04-a13a-4a27-a4a0-e2556acc5573}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function\Rendering">
+      <UniqueIdentifier>{76290ac7-739b-4143-84f1-8deae8a55086}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function\Rendering\Interface">
+      <UniqueIdentifier>{bfcb5a1a-d60e-45e5-82c7-30b06b2302e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function\Rendering\Interface\Vulkan">
+      <UniqueIdentifier>{5af74aaf-4b12-492c-8ca2-7999e33390c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{b2189dcb-2a4f-41ab-9af9-e74297191d76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{23f73f66-e192-4181-bb9b-e6b8ed8a611c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\Base\Common.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\Define.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Base\Macro.h">
+      <Filter>Core\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\RHI.h">
+      <Filter>Function\Rendering\Interface</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\RHI.cpp">
+      <Filter>Function\Rendering\Interface</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
