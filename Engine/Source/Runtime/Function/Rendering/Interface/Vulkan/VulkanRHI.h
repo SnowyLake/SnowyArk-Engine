@@ -46,11 +46,11 @@ struct SwapChainSupportDetails
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
-class VulkanRHI : RHI
+class VulkanRHI final : public RHI
 {
 public:
     VulkanRHI();
-    void Run();
+    void Run() override;
 
 private:
     GLFWwindow* m_Window;

@@ -157,10 +157,13 @@
     <ClInclude Include="Core\Base\Common.h" />
     <ClInclude Include="Core\Base\Define.h" />
     <ClInclude Include="Core\Base\Macro.h" />
+    <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
+    <ClInclude Include="Function\Rendering\Interface\RHIUtils.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Function\Rendering\Interface\RHI.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp" />
   </ItemGroup>

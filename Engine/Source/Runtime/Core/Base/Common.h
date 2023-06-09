@@ -10,6 +10,7 @@
 #include <chrono>
 #include <span>
 #include <set>
+#include <memory>
 
 #include "Engine/Source/Runtime/Core/Base/Macro.h"
 #include "Engine/Source/Runtime/Core/Base/Define.h"
@@ -36,4 +37,3 @@ struct OutArg
 template<typename T> using In = InArg<T>::Type;
 template<typename T> using Out = OutArg<T>::Type;
 }
-namespace Ark = Snowy::Ark;

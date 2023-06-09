@@ -42,6 +42,10 @@
     <ClInclude Include="Function\Rendering\Interface\RHI.h">
       <Filter>Function\Rendering\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Engine.h" />
+    <ClInclude Include="Function\Rendering\Interface\RHIUtils.h">
+      <Filter>Function\Rendering\Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
@@ -50,5 +54,6 @@
     <ClCompile Include="Function\Rendering\Interface\RHI.cpp">
       <Filter>Function\Rendering\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Engine.cpp" />
   </ItemGroup>
 </Project>
