@@ -123,7 +123,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -143,7 +143,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\DevProjects\Graphics\SnowyArk-Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;D:\DevProjects\Graphics\SnowyArk-Engine\Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
