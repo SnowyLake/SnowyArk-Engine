@@ -2,6 +2,10 @@
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 
+#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
+#define VULKAN_HPP_NO_EXCEPTIONS 1
+#define VULKAN_HPP_NO_CONSTRUCTORS
+
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
@@ -152,7 +156,7 @@ private:
 
     vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
-    VkShaderModule CreateShaderModule(const std::vector<char>& code);
+    vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
 
     static std::vector<char> ReadFile(const std::string& filename)
     {
