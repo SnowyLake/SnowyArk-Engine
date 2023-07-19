@@ -35,8 +35,10 @@ void VulkanRHI::InitWindow()
     LOG("Window Initialize, Start.");
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    //glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Hello VkTriangle!", nullptr, nullptr);
+    glfwSetWindowUserPointer(m_Window, this);
+    glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
     LOG("Window Initialize, Complete.");
 }
 void VulkanRHI::InitVulkan()
@@ -76,6 +78,7 @@ void VulkanRHI::MainLoop()
 
 void VulkanRHI::Cleanup()
 {
+    CleanupSwapChain();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         m_Device.destroySemaphore(m_ImageAvailableSemaphores[i], nullptr);
@@ -84,21 +87,6 @@ void VulkanRHI::Cleanup()
     }
         
     m_Device.destroyCommandPool(m_CommandPool, nullptr);
-
-    for (auto&& framebuffer : m_SwapChainFramebuffers)
-    {
-        m_Device.destroyFramebuffer(framebuffer, nullptr);
-    }
-
-    m_Device.destroyPipeline(m_GraphicsPipeline, nullptr);
-    m_Device.destroyPipelineLayout(m_PipelineLayout, nullptr);
-    m_Device.destroyRenderPass(m_RenderPass, nullptr);
-
-    for (auto&& imageView : m_SwapChainImageViews)
-    {
-        m_Device.destroyImageView(imageView, nullptr);
-    }
-    m_Device.destroySwapchainKHR(m_SwapChain, nullptr);
     m_Device.destroy(nullptr);
     if (g_EnableValidationLayers)
     {
@@ -621,6 +609,48 @@ void VulkanRHI::CreateSyncObjects()
     }
     LOG("Create Semaphores, Complete.")
 }
+
+void VulkanRHI::ReCreateSwapChain()
+{
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(m_Window, &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(m_Window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    m_Device.waitIdle();
+
+    CleanupSwapChain();
+
+    CreateSwapChain();
+    CreateImageViews();
+    CreateRenderPass();
+    CreateGraphicsPipeline();
+    CreateFramebuffers();
+    CreateCommandBuffers();
+}
+
+void VulkanRHI::CleanupSwapChain()
+{
+    for (auto&& framebuffer : m_SwapChainFramebuffers)
+    {
+        m_Device.destroyFramebuffer(framebuffer, nullptr);
+    }
+
+    m_Device.freeCommandBuffers(m_CommandPool, m_CommandBuffers);
+
+    m_Device.destroyPipeline(m_GraphicsPipeline, nullptr);
+    m_Device.destroyPipelineLayout(m_PipelineLayout, nullptr);
+    m_Device.destroyRenderPass(m_RenderPass, nullptr);
+
+    for (auto&& imageView : m_SwapChainImageViews)
+    {
+        m_Device.destroyImageView(imageView, nullptr);
+    }
+    m_Device.destroySwapchainKHR(m_SwapChain, nullptr);
+}
+
 void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex)
 {
     vk::CommandBufferBeginInfo cmdBeginInfo = {
@@ -656,11 +686,19 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffe
 void VulkanRHI::DrawFrame()
 {
     auto waitForFencesResult = m_Device.waitForFences(m_InFlightFences[m_CurrentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-    m_Device.resetFences(m_InFlightFences[m_CurrentFrame]);
 
     uint32_t imageIndex;
-    auto acquireNextImageResult = m_Device.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
-
+    auto acquireNextImageResult = m_Device.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), 
+                                                               m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
+    if (acquireNextImageResult == vk::Result::eErrorOutOfDateKHR)
+    {
+        ReCreateSwapChain();
+        return;
+    } else if (acquireNextImageResult != vk::Result::eSuccess && acquireNextImageResult != vk::Result::eSuboptimalKHR)
+    {
+        throw std::runtime_error("Failed to acquire swap chain image!");
+    }
+    m_Device.resetFences(m_InFlightFences[m_CurrentFrame]);
     RecordCommandBuffer(m_CommandBuffers, imageIndex);
 
     std::array<vk::PipelineStageFlags, 1> waitDstStageMask = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
@@ -687,7 +725,14 @@ void VulkanRHI::DrawFrame()
     };
 
     auto presentResult = m_PresentQueue.presentKHR(presentInfo);
-    CHECK_VK_RESULT(presentResult, "Failed to present image!");
+    if (presentResult == vk::Result::eErrorOutOfDateKHR || presentResult == vk::Result::eSuboptimalKHR || m_FramebufferResized)
+    {
+        m_FramebufferResized = false;
+        ReCreateSwapChain();
+    } else if (presentResult != vk::Result::eSuccess)
+    {
+        throw std::runtime_error("Failed to present swap chain image!");
+    }
 
     //vkQueueWaitIdle(m_PresentQueue);
     m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -855,7 +900,9 @@ vk::Extent2D VulkanRHI::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
     }
     else
     {
-        vk::Extent2D actualExtent = {WIDTH, HEIGHT};
+        int actualWidth, actualHeight;
+        glfwGetFramebufferSize(m_Window, &actualWidth, &actualHeight);
+        vk::Extent2D actualExtent = {actualWidth, actualHeight};
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
         return actualExtent;

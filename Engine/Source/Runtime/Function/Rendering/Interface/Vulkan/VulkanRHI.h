@@ -87,6 +87,7 @@ private:
     std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
     std::vector<vk::Fence> m_InFlightFences;
     size_t m_CurrentFrame = 0;
+    bool m_FramebufferResized = false;
 
 private:
     void InitWindow();
@@ -123,6 +124,10 @@ private:
 
     void CreateSyncObjects();
 
+    void ReCreateSwapChain();
+
+    void CleanupSwapChain();
+
     void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);
     
     void DrawFrame();
@@ -132,6 +137,12 @@ private:
     {
         std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
         return VK_FALSE;
+    }
+
+    static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
+    {
+        auto rhi = reinterpret_cast<VulkanRHI*>(glfwGetWindowUserPointer(window));
+        rhi->m_FramebufferResized = true;
     }
 
 // ==============================================
