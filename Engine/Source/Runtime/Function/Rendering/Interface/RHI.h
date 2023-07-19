@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 namespace Snowy::Ark
 {
-enum class ERHIType
+enum class EGraphicsBackendType
 {
     None,
     Vulkan

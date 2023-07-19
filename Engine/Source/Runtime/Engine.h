@@ -10,7 +10,7 @@ public:
     Engine() = default;
     ~Engine() = default;
 
-    void Init(ERHIType type);
+    void Init(EGraphicsBackendType type);
     void Run();
     void Destroy();
 

@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHIUtils.h"
 namespace Snowy::Ark
 {
-void Engine::Init(ERHIType type)
+void Engine::Init(EGraphicsBackendType type)
 {
     m_RHI = RHIUtils::CreateRHI(type);
 }
