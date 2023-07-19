@@ -35,7 +35,7 @@ void VulkanRHI::InitWindow()
     LOG("Window Initialize, Start.");
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    //glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Hello VkTriangle!", nullptr, nullptr);
     glfwSetWindowUserPointer(m_Window, this);
     glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
@@ -619,7 +619,7 @@ void VulkanRHI::ReCreateSwapChain()
         glfwWaitEvents();
     }
 
-    m_Device.waitIdle();
+    auto _ = m_Device.waitIdle();
 
     CleanupSwapChain();
 
@@ -902,7 +902,7 @@ vk::Extent2D VulkanRHI::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
     {
         int actualWidth, actualHeight;
         glfwGetFramebufferSize(m_Window, &actualWidth, &actualHeight);
-        vk::Extent2D actualExtent = {actualWidth, actualHeight};
+        vk::Extent2D actualExtent = {static_cast<uint32_t>(actualWidth), static_cast<uint32_t>(actualHeight)};
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
         return actualExtent;
