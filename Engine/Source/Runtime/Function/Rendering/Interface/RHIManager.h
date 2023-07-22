@@ -1,11 +1,9 @@
 #pragma once
-#include "Engine\Source\Runtime\Core\Base\Common.h"
-#include "Engine//Source/Runtime/Function/Rendering/Interface/RHI.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanRHI.h"
-
 namespace Snowy::Ark
 {
-class RHIUtils
+class RHIManager
 {
 public:
     static std::shared_ptr<RHI> CreateRHI(EGraphicsBackendType type)

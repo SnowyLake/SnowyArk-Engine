@@ -1,10 +1,7 @@
 #pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
-
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#define VULKAN_HPP_NO_EXCEPTIONS 1
-#define VULKAN_HPP_NO_CONSTRUCTORS
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>

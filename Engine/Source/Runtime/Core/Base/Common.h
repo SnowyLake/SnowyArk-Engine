@@ -25,7 +25,7 @@ struct InArg
 template<>
 struct InArg<std::string>
 {
-    using Type = const std::string_view;
+    using Type = std::string_view;
 };
 
 template<typename T>

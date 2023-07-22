@@ -159,7 +159,8 @@
     <ClInclude Include="Core\Base\Macro.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
-    <ClInclude Include="Function\Rendering\Interface\RHIUtils.h" />
+    <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanUtils.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
   </ItemGroup>
   <ItemGroup>
