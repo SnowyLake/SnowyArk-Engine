@@ -1,5 +1,4 @@
 #pragma once
-
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -11,29 +10,10 @@
 #include <span>
 #include <set>
 #include <memory>
+#include <filesystem>
+
+#include "Engine/Source/Runtime/Core/SnowyCore/ArgumentWapper.hpp"
+#include "Engine/Source/Runtime/Core/SnowyCore/SingletonWrapper.hpp"
 
 #include "Engine/Source/Runtime/Core/Base/Macro.h"
 #include "Engine/Source/Runtime/Core/Base/Define.h"
-
-namespace Snowy::Ark
-{
-template<typename T>
-struct InArg
-{
-    using Type = const T&;
-};
-template<>
-struct InArg<std::string>
-{
-    using Type = std::string_view;
-};
-
-template<typename T>
-struct OutArg
-{
-    using Type = T*;
-};
-
-template<typename T> using In = InArg<T>::Type;
-template<typename T> using Out = OutArg<T>::Type;
-}
