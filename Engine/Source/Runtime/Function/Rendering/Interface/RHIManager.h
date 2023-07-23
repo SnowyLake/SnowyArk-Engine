@@ -16,5 +16,9 @@ public:
             return nullptr;
         }
     }
+    static void DestroyRHI()
+    {
+
+    }
 };
 }

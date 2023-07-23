@@ -74,6 +74,7 @@ void VulkanRHI::MainLoop()
 
 void VulkanRHI::Cleanup()
 {
+    LOG("Vulkan Destory, Start.");
     CleanupSwapChain();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -91,6 +92,8 @@ void VulkanRHI::Cleanup()
 
     m_Instance.destroySurfaceKHR(m_Surface, nullptr);
     m_Instance.destroy(nullptr);
+
+    LOG("Vulkan Destory, Complete.");
 
     glfwDestroyWindow(m_Window);
     glfwTerminate();
@@ -309,13 +312,13 @@ void VulkanRHI::CreateGraphicsPipeline()
     LOG("Create Graphics Pipeline, Start.");
 
     auto&& fs = FileSystem::Instance();
-    auto vertShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/Generated/vert.spv")));
+    auto vertShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/SPIR-V/vert.spv")));
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = vertShaderModule,
         .pName = "main",
     };
-    auto fragShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/Generated/frag.spv")));
+    auto fragShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/SPIR-V/frag.spv")));
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eFragment,
         .module = fragShaderModule,
