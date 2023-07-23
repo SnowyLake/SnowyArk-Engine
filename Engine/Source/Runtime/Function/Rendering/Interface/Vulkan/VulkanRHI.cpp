@@ -1,4 +1,5 @@
 #include "VulkanRHI.h"
+#include "Engine/Source/Runtime/Platform/FileSystem.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
@@ -107,7 +108,7 @@ void VulkanRHI::CreateInstance()
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
         .pEngineName = "SnowyArk",
         .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_3,
+        .apiVersion = VK_API_VERSION_1_1,
     };
 
     auto extensions = GetRequiredExtensions();
@@ -301,20 +302,20 @@ void VulkanRHI::CreateImageViews()
         VulkanUtils::ResultProcessing(m_Device.createImageView(createInfo, nullptr),
                                       std::format("Failed to create ImageView[{}]!", i), &m_SwapChainImageViews[i]);
     }
-    LOG("Create Image Views, Complete.")
+    LOG("Create Image Views, Complete.");
 }
 void VulkanRHI::CreateGraphicsPipeline()
 {
-    LOG("Create Graphics Pipeline, Start.")
+    LOG("Create Graphics Pipeline, Start.");
 
-    auto vertShaderModule = CreateShaderModule(ReadFile("D:/Workspace/Graphics/SnowyArk-Engine/Engine/Shaders/Generated/vert.spv"));
+    auto&& fs = FileSystem::Instance();
+    auto vertShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/Generated/vert.spv")));
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = vertShaderModule,
         .pName = "main",
     };
-
-    auto fragShaderModule = CreateShaderModule(ReadFile("D:/Workspace/Graphics/SnowyArk-Engine/Engine/Shaders/Generated/frag.spv"));
+    auto fragShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(fs.FullPath("Engine/Shaders/Generated/frag.spv")));
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eFragment,
         .module = fragShaderModule,
@@ -565,7 +566,8 @@ void VulkanRHI::ReCreateSwapChain()
 {
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_Window, &width, &height);
-    while (width == 0 || height == 0) {
+    while (width == 0 || height == 0) 
+    {
         glfwGetFramebufferSize(m_Window, &width, &height);
         glfwWaitEvents();
     }
@@ -617,7 +619,7 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffe
                                       } else
                                       {
                                           std::array<vk::ClearValue, 1> clearValues = {
-                                              vk::ClearColorValue{.float32 = std::array{0.0f, 0.0f, 0.0f, 1.0f} }
+                                              vk::ClearColorValue{ .float32 = std::array{0.0f, 0.0f, 0.0f, 1.0f} }
                                           };
                                           vk::RenderPassBeginInfo renderPassBeginInfo = {
                                               .renderPass = m_RenderPass,
@@ -658,6 +660,7 @@ void VulkanRHI::DrawFrame()
                                   });
 
     m_Device.resetFences(m_InFlightFences[m_CurrentFrame]);
+
     RecordCommandBuffer(m_CommandBuffers, imageIndex);
 
     std::array<vk::PipelineStageFlags, 1> waitDstStageMask = { vk::PipelineStageFlagBits::eColorAttachmentOutput };

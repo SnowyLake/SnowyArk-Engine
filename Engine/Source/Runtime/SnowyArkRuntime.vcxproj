@@ -157,16 +157,20 @@
     <ClInclude Include="Core\Base\Common.h" />
     <ClInclude Include="Core\Base\Define.h" />
     <ClInclude Include="Core\Base\Macro.h" />
+    <ClInclude Include="Core\SnowyCore\ArgumentWapper.hpp" />
+    <ClInclude Include="Core\SnowyCore\SingletonWrapper.hpp" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
     <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanUtils.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
+    <ClInclude Include="Platform\FileSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Function\Rendering\Interface\RHI.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp" />
+    <ClCompile Include="Platform\FileSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
