@@ -5,6 +5,9 @@
 #define VULKAN_HPP_NO_EXCEPTIONS 1
 #define VULKAN_HPP_NO_CONSTRUCTORS
 
+// Vulkan RHI
+#define RHI_VULKAN 1
+
 // GLFW
 #define GLFW_INCLUDE_VULKAN
 

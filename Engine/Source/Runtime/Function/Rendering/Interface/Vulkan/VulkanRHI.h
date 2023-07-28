@@ -10,7 +10,8 @@
 
 namespace Snowy::Ark
 {
-struct Vertex {
+struct Vertex
+{
     glm::vec2 position;
     glm::vec3 color;
 
@@ -33,7 +34,7 @@ struct Vertex {
             .offset = offsetof(Vertex, position),
         };
         attributeDescriptions[1] = {
-            .location = 0,
+            .location = 1,
             .binding = 0,
             .format = vk::Format::eR32G32B32Sfloat,
             .offset = offsetof(Vertex, color),
@@ -60,7 +61,6 @@ const std::vector<const char*> g_DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-//constexpr bool g_EnableValidationLayers = true;
 #ifdef NDEBUG
 constexpr bool g_EnableValidationLayers = false;
 #else
@@ -89,6 +89,7 @@ class VulkanRHI final : public RHI
 public:
     VulkanRHI();
     void Run() override;
+    void Cleanup() override;
 
 private:
     GLFWwindow* m_Window;
@@ -124,12 +125,13 @@ private:
     bool m_FramebufferResized = false;
 
     vk::Buffer m_VertexBuffer;
+    vk::DeviceMemory m_VertexBufferMemory;
 
 private:
     void InitWindow();
     void InitVulkan();
     void MainLoop();
-    void Cleanup();
+
     
     // ==============================================
     // Feature Functions
@@ -150,15 +152,8 @@ private:
     void CreateSyncObjects();
     void ReCreateSwapChain();
     void CleanupSwapChain();
-    void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);   
+    void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);
     void DrawFrame();
-
-    static VKAPI_ATTR vk::Bool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, 
-                                                          const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-    {
-        std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
-        return VK_FALSE;
-    }
 
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
     {

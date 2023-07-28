@@ -13,7 +13,7 @@ concept IsProcessor = requires(R r, Processor processor)
 class VulkanUtils
 {
 public:
-    static void ExecuteResult(vk::Result result, In<std::string> errorMsg, vk::Result compare = vk::Result::eSuccess)
+    static void ExecResult(vk::Result result, In<std::string> errorMsg, vk::Result compare = vk::Result::eSuccess)
     {
         if (result != compare)
         {
@@ -22,7 +22,7 @@ public:
     }
 
     template<typename T>
-    static void ExecuteResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result compare = vk::Result::eSuccess)
+    static void ExecResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result compare = vk::Result::eSuccess)
     {
         if (result.result != compare)
         {
@@ -37,15 +37,24 @@ public:
     }
 
     template<typename P> requires IsProcessor<vk::Result, P>
-    static void ExecuteResult(vk::Result result, const P& processor)
+    static void ExecResult(vk::Result result, const P& processor)
     {
         processor(result);
     }
 
     template<typename T, typename P> requires IsProcessor<vk::ResultValue<T>, P>
-    static void ExecuteResult(const vk::ResultValue<T>& result, const P& processor)
+    static void ExecResult(const vk::ResultValue<T>& result, const P& processor)
     {
         processor(result);
+    }
+
+    static VKAPI_ATTR vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                                         void* pUserData)
+    {
+        std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
+        return VK_FALSE;
     }
 };
 }
