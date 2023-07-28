@@ -48,13 +48,13 @@ public:
         processor(result);
     }
 
-    static VKAPI_ATTR vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                                         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                                         void* pUserData)
+    static vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                              VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                              void* pUserData)
     {
         std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
-        return VK_FALSE;
+        return RHI_FALSE;
     }
 };
 }

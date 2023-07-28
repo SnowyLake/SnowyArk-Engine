@@ -21,6 +21,9 @@ VulkanRHI::VulkanRHI()
     InitVulkan();
 }
 
+VulkanRHI::~VulkanRHI()
+{}
+
 void VulkanRHI::Run()
 {
     MainLoop();
@@ -550,26 +553,25 @@ void VulkanRHI::CreateCommandBuffers()
 
 void VulkanRHI::CreateVertexBuffer()
 {
-    vk::BufferCreateInfo bufferInfo = {
-        .size = sizeof(g_TriangleVertices[0]) * g_TriangleVertices.size(),
-        .usage = vk::BufferUsageFlagBits::eVertexBuffer,
-        .sharingMode = vk::SharingMode::eExclusive,
-    };
-    VulkanUtils::ExecResult(m_Device.createBuffer(bufferInfo), "Failed to create vertex buffer!", &m_VertexBuffer);
+    vk::DeviceSize bufferSize = sizeof(decltype(g_TriangleVertices)::value_type) * g_TriangleVertices.size();
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
 
-    vk::MemoryRequirements memRequirements;
-    m_Device.getBufferMemoryRequirements(m_VertexBuffer, &memRequirements);
-    vk::MemoryAllocateInfo allocInfo = {
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent),
-    };
-    VulkanUtils::ExecResult(m_Device.allocateMemory(allocInfo), "Failed to allocate vertex buffer memory!", &m_VertexBufferMemory);
-    VulkanUtils::ExecResult(m_Device.bindBufferMemory(m_VertexBuffer, m_VertexBufferMemory, 0), "Failed to bind vertex buffer memory!");
+    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 &stagingBuffer, &stagingBufferMemory);
 
     void* data;
-    VulkanUtils::ExecResult(m_Device.mapMemory(m_VertexBufferMemory, 0, bufferInfo.size, {}), "Failed to map vertex buffer memory!", &data);
-    memcpy(data, g_TriangleVertices.data(), (size_t)bufferInfo.size);
-    m_Device.unmapMemory(m_VertexBufferMemory);
+    VulkanUtils::ExecResult(m_Device.mapMemory(stagingBufferMemory, 0, bufferSize, {}), "Failed to map vertex buffer memory!", &data);
+    memcpy(data, g_TriangleVertices.data(), (size_t)bufferSize);
+    m_Device.unmapMemory(stagingBufferMemory);
+
+    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+                 vk::MemoryPropertyFlagBits::eDeviceLocal, &m_VertexBuffer, &m_VertexBufferMemory);
+    CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
+
+    m_Device.destroyBuffer(stagingBuffer);
+    m_Device.freeMemory(stagingBufferMemory);
 }
 
 void VulkanRHI::CreateSyncObjects()
@@ -672,13 +674,14 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& cmds, uint32
                                     cmds[idx].bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
 
                                     std::array<vk::Buffer, 1> vertexBuffers = { m_VertexBuffer };
-                                    std::array<vk::DeviceSize, 1> offsets = { 0 };
+                                    std::array<vk::DeviceSize, 1>   offsets = { 0 };
                                     cmds[idx].bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
+
                                     cmds[idx].draw(static_cast<uint32_t>(g_TriangleVertices.size()), 1, 0, 0);
                                     cmds[idx].endRenderPass();
 
                                     VulkanUtils::ExecResult(cmds[idx].end(), "Failed to end recording command buffer!");
-                                };
+                                }
                             });
 }
 void VulkanRHI::DrawFrame()
@@ -931,5 +934,23 @@ uint32_t VulkanRHI::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags 
         }
     }
     throw std::runtime_error("Failed to find suitable memory type!");
+}
+void VulkanRHI::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory)
+{
+    vk::BufferCreateInfo bufferInfo = {
+        .size = size,
+        .usage = usage,
+        .sharingMode = vk::SharingMode::eExclusive,
+    };
+    VulkanUtils::ExecResult(m_Device.createBuffer(bufferInfo), "Failed to create buffer!", buffer);
+
+    vk::MemoryRequirements memRequirements;
+    m_Device.getBufferMemoryRequirements(*buffer, &memRequirements);
+    vk::MemoryAllocateInfo allocInfo = {
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
+    };
+    VulkanUtils::ExecResult(m_Device.allocateMemory(allocInfo), "Failed to allocate vertex buffer memory!", bufferMemory);
+    VulkanUtils::ExecResult(m_Device.bindBufferMemory(*buffer, *bufferMemory, 0), "Failed to bind vertex buffer memory!");
 }
 }

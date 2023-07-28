@@ -88,6 +88,7 @@ class VulkanRHI final : public RHI
 {
 public:
     VulkanRHI();
+    ~VulkanRHI();
     void Run() override;
     void Cleanup() override;
 
@@ -176,5 +177,53 @@ private:
     vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
     vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
+    void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);
+    void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+    {
+        vk::CommandBufferAllocateInfo allocInfo = {
+            .commandPool = m_CommandPool,
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1,
+        };
+
+        vk::CommandBuffer cmd;
+        VulkanUtils::ExecResult(m_Device.allocateCommandBuffers(allocInfo),
+                                [&](const auto& result) {
+                                    if (result.result != vk::Result::eSuccess)
+                                    {
+                                        throw std::runtime_error("Failed to allocate copybuffer command!");
+                                    } else
+                                    {
+                                        cmd = result.value[0];
+                                    }
+                                });
+        vk::CommandBufferBeginInfo beginInfo = {
+            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+        };
+        VulkanUtils::ExecResult(cmd.begin(beginInfo),
+                                [&](auto result) {
+                                    if (result != vk::Result::eSuccess)
+                                    {
+                                        throw std::runtime_error("Failed to begin recording copybuffer command!");
+                                    } else
+                                    {
+                                        vk::BufferCopy copyRegion = {
+                                            .srcOffset = 0,
+                                            .dstOffset = 0,
+                                            .size = size,
+                                        };
+                                        cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+                                        VulkanUtils::ExecResult(cmd.end(), "Failed to end recording copybuffer command!");
+                                    }
+                                });
+
+        vk::SubmitInfo submitInfo = {
+            .commandBufferCount = 1,
+            .pCommandBuffers = &cmd,
+        };
+        VulkanUtils::ExecResult(m_GraphicsQueue.submit(submitInfo), "Failed to submit copybuffer command!");
+        auto _ = m_GraphicsQueue.waitIdle();
+        m_Device.freeCommandBuffers(m_CommandPool, cmd);
+    }
 };
 }

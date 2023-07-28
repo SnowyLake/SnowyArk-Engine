@@ -31,6 +31,15 @@
     <Filter Include="Function\Global">
       <UniqueIdentifier>{bcac3a2b-2c82-4645-9096-ca5c4513aa8c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Color">
+      <UniqueIdentifier>{81ea3a3d-55b5-4a3f-9827-e7cc88d6ca54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Log">
+      <UniqueIdentifier>{329663dc-7ce1-466e-900b-1a2c1756ad0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Math">
+      <UniqueIdentifier>{a0150da2-139f-411e-b105-c6242f5f254a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\Common.h">
