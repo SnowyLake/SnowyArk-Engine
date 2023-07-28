@@ -1,7 +1,7 @@
 #include "RHI.h"
 namespace Snowy::Ark
 {
-//void RHI::Init(EGraphicsBackendType type)
+//void RHI::Init(ERHIBackend type)
 //{
 //    
 //}

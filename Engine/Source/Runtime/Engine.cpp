@@ -2,7 +2,7 @@
 
 namespace Snowy::Ark
 {
-void Engine::Init(EGraphicsBackendType type)
+void Engine::Init(ERHIBackend type)
 {
     m_RHI = RHIManager::CreateRHI(type);
 

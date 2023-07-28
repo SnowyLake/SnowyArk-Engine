@@ -13,8 +13,7 @@ concept IsProcessor = requires(R r, Processor processor)
 class VulkanUtils
 {
 public:
-
-    static void ResultProcessing(vk::Result result, In<std::string> errorMsg, vk::Result compare = vk::Result::eSuccess)
+    static void ExecuteResult(vk::Result result, In<std::string> errorMsg, vk::Result compare = vk::Result::eSuccess)
     {
         if (result != compare)
         {
@@ -23,28 +22,28 @@ public:
     }
 
     template<typename T>
-    static void ResultProcessing(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> target = nullptr, vk::Result compare = vk::Result::eSuccess)
+    static void ExecuteResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result compare = vk::Result::eSuccess)
     {
         if (result.result != compare)
         {
             throw std::runtime_error(static_cast<std::string>(errorMsg));
         } else
         {
-            if (target)
+            if (output)
             {
-                *target = result.value;
+                *output = result.value;
             }
         }
     }
 
     template<typename P> requires IsProcessor<vk::Result, P>
-    static void ResultProcessing(vk::Result result, const P& processor)
+    static void ExecuteResult(vk::Result result, const P& processor)
     {
         processor(result);
     }
 
     template<typename T, typename P> requires IsProcessor<vk::ResultValue<T>, P>
-    static void ResultProcessing(const vk::ResultValue<T>& result, const P& processor)
+    static void ExecuteResult(const vk::ResultValue<T>& result, const P& processor)
     {
         processor(result);
     }

@@ -10,7 +10,7 @@ int main()
     try
     {
         Ark::Engine* engine = new Ark::Engine();
-        engine->Init(Ark::EGraphicsBackendType::Vulkan);
+        engine->Init(Ark::ERHIBackend::Vulkan);
 
         Ark::Editor* editor = new Ark::Editor();
         editor->Init(engine);

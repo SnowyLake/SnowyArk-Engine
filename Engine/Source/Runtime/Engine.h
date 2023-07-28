@@ -6,7 +6,7 @@ namespace Snowy::Ark
 class Engine
 {
 public:
-    void Init(EGraphicsBackendType type);
+    void Init(ERHIBackend type);
     void Run();
     void Destroy();
 

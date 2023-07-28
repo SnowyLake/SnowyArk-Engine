@@ -6,9 +6,9 @@ namespace Snowy::Ark
 class RHIManager
 {
 public:
-    static std::shared_ptr<RHI> CreateRHI(EGraphicsBackendType type)
+    static std::shared_ptr<RHI> CreateRHI(ERHIBackend type)
     {
-        if (type == EGraphicsBackendType::Vulkan)
+        if (type == ERHIBackend::Vulkan)
         {
             return std::make_shared<VulkanRHI>();
         } else

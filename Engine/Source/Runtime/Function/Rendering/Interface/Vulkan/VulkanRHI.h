@@ -6,11 +6,48 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include <glm/glm.hpp>
 
 namespace Snowy::Ark
 {
+struct Vertex {
+    glm::vec2 position;
+    glm::vec3 color;
+
+    static vk::VertexInputBindingDescription GetBindingDescription() 
+    {
+        vk::VertexInputBindingDescription bindingDescription = {
+            .binding = 0,
+            .stride = sizeof(Vertex),
+            .inputRate = vk::VertexInputRate::eVertex,
+        };
+        return bindingDescription;
+    }
+    static std::array<vk::VertexInputAttributeDescription, 2> GetAttributeDescriptions()
+    {
+        std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions{};
+        attributeDescriptions[0] = {
+            .location = 0,
+            .binding = 0,
+            .format = vk::Format::eR32G32Sfloat,
+            .offset = offsetof(Vertex, position),
+        };
+        attributeDescriptions[1] = {
+            .location = 0,
+            .binding = 0,
+            .format = vk::Format::eR32G32B32Sfloat,
+            .offset = offsetof(Vertex, color),
+        };
+        return attributeDescriptions;
+    }
+};
+
+const std::vector<Vertex> g_TriangleVertices = {
+    { { 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f} },
+    { { 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f} },
+    { {-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} }
+};
+
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -86,6 +123,8 @@ private:
     size_t m_CurrentFrame = 0;
     bool m_FramebufferResized = false;
 
+    vk::Buffer m_VertexBuffer;
+
 private:
     void InitWindow();
     void InitVulkan();
@@ -96,37 +135,22 @@ private:
     // Feature Functions
     // ==============================================
     void CreateInstance();
-
     void SetupDebugCallback();
-
     void CreateSurface();
-
     void PickPhysicalDevice();
-
     void CreateLogicalDevice();
-
     void CreateSwapChain();
-
     void CreateImageViews();
-
-    void CreateGraphicsPipeline();
-    
+    void CreateGraphicsPipeline();  
     void CreateRenderPass();
-
     void CreateFramebuffers();
-
     void CreateCommandPool();
-
     void CreateCommandBuffers();
-
+    void CreateVertexBuffer();
     void CreateSyncObjects();
-
     void ReCreateSwapChain();
-
     void CleanupSwapChain();
-
-    void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);
-    
+    void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);   
     void DrawFrame();
 
     static VKAPI_ATTR vk::Bool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, 
@@ -143,27 +167,19 @@ private:
     }
 
 // ==============================================
-// Tool Functions
+// Tool Functions, TODO: VulkanUtils
 // ==============================================
 private:
     bool CheckValidationLayerSupport();
-
     bool CheckDeviceExtensionSupport(vk::PhysicalDevice device);
-
     std::vector<const char*> GetRequiredExtensions();
-
     bool IsDeviceSuitable(vk::PhysicalDevice device);
-
     QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
-
     SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
-
     vk::SurfaceFormatKHR ChooseSwapChainFormat(std::span<vk::SurfaceFormatKHR> availableFormats);
-
     vk::PresentModeKHR ChooseSwapPresentMode(std::span<vk::PresentModeKHR> availablePresentModes);
-
     vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
-
     vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
+    uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
 };
 }
