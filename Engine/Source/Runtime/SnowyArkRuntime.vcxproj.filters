@@ -85,5 +85,8 @@
     <ClCompile Include="Platform\FileSystem.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanUtils.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -170,6 +170,7 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Function\Rendering\Interface\RHI.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp" />
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanUtils.cpp" />
     <ClCompile Include="Platform\FileSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

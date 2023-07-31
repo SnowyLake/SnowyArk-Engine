@@ -1,30 +1,39 @@
 #pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
+
 #include <vulkan/vulkan.hpp>
 
 namespace Snowy::Ark
 {
-template<typename R, typename Processor>
-concept IsProcessor = requires(R r, Processor processor)
+// VerifyFunc Concept
+template<typename R, typename V>
+concept IsVerifyFunc = requires(R result, V verifyFunc)
 {
-    processor(r);
+    verifyFunc(result);
 };
 
-class VulkanUtils
+// Forward Declare
+class VulkanRHI;
+
+// Vulkan Utils
+class VkUtils
 {
 public:
-    static void ExecResult(vk::Result result, In<std::string> errorMsg, vk::Result compare = vk::Result::eSuccess)
+    /*----------------------------------------------------------*/
+    // Vulkan Result Process Function
+    /*----------------------------------------------------------*/
+    static void VerifyResult(vk::Result result, In<std::string> errorMsg, vk::Result targetResult = vk::Result::eSuccess)
     {
-        if (result != compare)
+        if (result != targetResult)
         {
             throw std::runtime_error(static_cast<std::string>(errorMsg));
         }
     }
-
     template<typename T>
-    static void ExecResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result compare = vk::Result::eSuccess)
+    static void VerifyResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
-        if (result.result != compare)
+        if (result.result != targetResult)
         {
             throw std::runtime_error(static_cast<std::string>(errorMsg));
         } else
@@ -35,26 +44,26 @@ public:
             }
         }
     }
-
-    template<typename P> requires IsProcessor<vk::Result, P>
-    static void ExecResult(vk::Result result, const P& processor)
+    template<typename F> requires IsVerifyFunc<vk::Result, F>
+    static void VerifyResult(vk::Result result, const F& verifyFunc)
     {
-        processor(result);
+        verifyFunc(result);
+    }
+    template<typename T, typename F> requires IsVerifyFunc<vk::ResultValue<T>, F>
+    static void VerifyResult(const vk::ResultValue<T>& result, const F& verifyFunc)
+    {
+        verifyFunc(result);
     }
 
-    template<typename T, typename P> requires IsProcessor<vk::ResultValue<T>, P>
-    static void ExecResult(const vk::ResultValue<T>& result, const P& processor)
-    {
-        processor(result);
-    }
 
+    /*----------------------------------------------------------*/
+    // Vulkan Tool Functions
+    /*----------------------------------------------------------*/
     static vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                               VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                              void* pUserData)
-    {
-        std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
-        return RHI_FALSE;
-    }
+                                                              void* pUserData);
+
+    static void CopyBuffer(Handle<VulkanRHI> vkHandle, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 };
 }

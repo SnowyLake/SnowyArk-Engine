@@ -7,9 +7,17 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Snowy::Ark
 {
+struct UniformBufferObject
+{
+    glm::mat4 modelMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectMatrix;
+};
+
 struct Vertex
 {
     glm::vec2 position;
@@ -44,14 +52,22 @@ struct Vertex
 };
 
 const std::vector<Vertex> g_TriangleVertices = {
-    { { 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f} },
-    { { 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f} },
-    { {-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f} }
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
 };
+const std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+#ifdef NDEBUG
+constexpr bool g_EnableValidationLayers = false;
+#else
+constexpr bool g_EnableValidationLayers = true;
+#endif
 
 const std::vector<const char*> g_ValidationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -60,12 +76,6 @@ const std::vector<const char*> g_ValidationLayers = {
 const std::vector<const char*> g_DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-#ifdef NDEBUG
-constexpr bool g_EnableValidationLayers = false;
-#else
-constexpr bool g_EnableValidationLayers = true;
-#endif
 
 struct QueueFamilyIndices
 {
@@ -113,6 +123,7 @@ private:
     std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
 
     vk::RenderPass m_RenderPass;
+    vk::DescriptorSetLayout m_DescriptorSetLayout;
     vk::Pipeline m_GraphicsPipeline;
     vk::PipelineLayout m_PipelineLayout;
 
@@ -125,15 +136,22 @@ private:
     size_t m_CurrentFrame = 0;
     bool m_FramebufferResized = false;
 
-    vk::Buffer m_VertexBuffer;
-    vk::DeviceMemory m_VertexBufferMemory;
+    vk::Buffer m_VertexBuffer, m_IndexBuffer;
+    vk::DeviceMemory m_VertexBufferMemory, m_IndexBufferMemory;
+
+    std::vector<vk::Buffer> m_UniformBuffers;
+    std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
+
+public:
+    vk::Device& Device() { return m_Device; }
+    vk::Queue& GraphicsQueue() { return m_GraphicsQueue; }
+    vk::CommandPool& CommandPool() { return m_CommandPool; }
 
 private:
     void InitWindow();
     void InitVulkan();
     void MainLoop();
 
-    
     // ==============================================
     // Feature Functions
     // ==============================================
@@ -144,12 +162,15 @@ private:
     void CreateLogicalDevice();
     void CreateSwapChain();
     void CreateImageViews();
+    void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();  
     void CreateRenderPass();
     void CreateFramebuffers();
     void CreateCommandPool();
     void CreateCommandBuffers();
-    void CreateVertexBuffer();
+    void CreateVertexBuffer(In<std::vector<Vertex>> triangleVertices);
+    void CreateIndexBuffer(In<std::vector<uint16_t>> triangleIndices);
+    void CreateUniformBuffer();
     void CreateSyncObjects();
     void ReCreateSwapChain();
     void CleanupSwapChain();
@@ -163,7 +184,7 @@ private:
     }
 
 // ==============================================
-// Tool Functions, TODO: VulkanUtils
+// Tool Functions, TODO: VkUtils
 // ==============================================
 private:
     bool CheckValidationLayerSupport();
@@ -178,52 +199,6 @@ private:
     vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
     void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);
-    void CopyBuffer(vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
-    {
-        vk::CommandBufferAllocateInfo allocInfo = {
-            .commandPool = m_CommandPool,
-            .level = vk::CommandBufferLevel::ePrimary,
-            .commandBufferCount = 1,
-        };
-
-        vk::CommandBuffer cmd;
-        VulkanUtils::ExecResult(m_Device.allocateCommandBuffers(allocInfo),
-                                [&](const auto& result) {
-                                    if (result.result != vk::Result::eSuccess)
-                                    {
-                                        throw std::runtime_error("Failed to allocate copybuffer command!");
-                                    } else
-                                    {
-                                        cmd = result.value[0];
-                                    }
-                                });
-        vk::CommandBufferBeginInfo beginInfo = {
-            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-        };
-        VulkanUtils::ExecResult(cmd.begin(beginInfo),
-                                [&](auto result) {
-                                    if (result != vk::Result::eSuccess)
-                                    {
-                                        throw std::runtime_error("Failed to begin recording copybuffer command!");
-                                    } else
-                                    {
-                                        vk::BufferCopy copyRegion = {
-                                            .srcOffset = 0,
-                                            .dstOffset = 0,
-                                            .size = size,
-                                        };
-                                        cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
-                                        VulkanUtils::ExecResult(cmd.end(), "Failed to end recording copybuffer command!");
-                                    }
-                                });
-
-        vk::SubmitInfo submitInfo = {
-            .commandBufferCount = 1,
-            .pCommandBuffers = &cmd,
-        };
-        VulkanUtils::ExecResult(m_GraphicsQueue.submit(submitInfo), "Failed to submit copybuffer command!");
-        auto _ = m_GraphicsQueue.waitIdle();
-        m_Device.freeCommandBuffers(m_CommandPool, cmd);
-    }
+    void UpdateUniformBuffer(uint32_t idx);
 };
 }

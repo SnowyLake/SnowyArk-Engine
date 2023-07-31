@@ -16,7 +16,10 @@ namespace Snowy::Ark
 enum class ERHIBackend
 {
     None,
-    Vulkan
+    // OpenGL,
+    Vulkan,
+    // DirectX11,
+    // DirectX12,
 };
 
 class RHI
