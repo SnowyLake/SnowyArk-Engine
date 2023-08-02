@@ -45,11 +45,6 @@ void VulkanRHI::InitVulkan()
 {
     LOG("Vulkan Initialize, Start.");
 
-    //TODO: PreInitVulkan
-    vk::DynamicLoader dl;
-    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
-
     CreateInstance();
     SetupDebugCallback();
     CreateSurface();
@@ -64,11 +59,14 @@ void VulkanRHI::InitVulkan()
     CreateFramebuffers();
 
     CreateCommandPool();
-    CreateCommandBuffers();
 
     CreateVertexBuffer(g_TriangleVertices);
     CreateIndexBuffer(g_TriangleIndices);
     CreateUniformBuffer();
+
+    CreateDescriptorPool();
+    CreateDescriptorSets();
+    CreateCommandBuffers();
 
     CreateSyncObjects();
     LOG("Vulkan Initialize, Complete.");
@@ -91,6 +89,7 @@ void VulkanRHI::Cleanup()
     CleanupSwapChain();
 
     m_Device.destroyDescriptorSetLayout(m_DescriptorSetLayout);
+    m_Device.destroyDescriptorPool(m_DescriptorPool);
 
     m_Device.destroyBuffer(m_VertexBuffer);
     m_Device.freeMemory(m_VertexBufferMemory);
@@ -127,6 +126,11 @@ void VulkanRHI::Cleanup()
 void VulkanRHI::CreateInstance()
 {
     LOG("Create Vulakn Instance, Start.");
+
+    vk::DynamicLoader dl;
+    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+
     if (g_EnableValidationLayers && !CheckValidationLayerSupport())
     {
         throw std::runtime_error("Vaildation layers requested, but not available!");
@@ -410,7 +414,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .rasterizerDiscardEnable = RHI_FALSE,
         .polygonMode = vk::PolygonMode::eFill,
         .cullMode = vk::CullModeFlagBits::eBack,
-        .frontFace = vk::FrontFace::eClockwise,
+        .frontFace = vk::FrontFace::eCounterClockwise,
         .depthBiasEnable = RHI_FALSE,
         .depthBiasConstantFactor = 0.0f,
         .depthBiasClamp = 0.0f,
@@ -650,6 +654,52 @@ void VulkanRHI::CreateUniformBuffer()
     }
 }
 
+void VulkanRHI::CreateDescriptorPool()
+{
+    vk::DescriptorPoolSize poolSize = {
+        .descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size()),
+    };
+    vk::DescriptorPoolCreateInfo poolInfo = {
+        .maxSets = static_cast<uint32_t>(m_SwapChainImages.size()),
+        .poolSizeCount = 1,
+        .pPoolSizes = &poolSize,
+    };
+    VkUtils::VerifyResult(m_Device.createDescriptorPool(poolInfo), "Failed to create descriptor pool!", &m_DescriptorPool);
+}
+
+void VulkanRHI::CreateDescriptorSets()
+{
+    LOG("Create Descriptor Sets, Start.")
+    std::vector<vk::DescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
+    vk::DescriptorSetAllocateInfo allocInfo = {
+        .descriptorPool = m_DescriptorPool,
+        .descriptorSetCount = static_cast<uint32_t>(m_SwapChainImages.size()),
+        .pSetLayouts = layouts.data(),
+    };
+    m_DescriptorSets.resize(m_SwapChainImages.size());
+    VkUtils::VerifyResult(m_Device.allocateDescriptorSets(allocInfo), "Failed to alloc descriptor set!", &m_DescriptorSets);
+    for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+    {
+        vk::DescriptorBufferInfo bufferInfo = {
+            .buffer = m_UniformBuffers[i],
+            .offset = 0,
+            .range = sizeof(UniformBufferObject),
+        };
+        vk::WriteDescriptorSet descriptorWrite = {
+            .dstSet = m_DescriptorSets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .pImageInfo = RHI_NULL_HANDLE,
+            .pBufferInfo = &bufferInfo,
+            .pTexelBufferView = RHI_NULL_HANDLE,
+        };
+        m_Device.updateDescriptorSets(descriptorWrite, nullptr);
+    }
+    LOG("Create Descriptor Sets, Complete.")
+}
+
 void VulkanRHI::CreateSyncObjects()
 {
     LOG("Create Semaphores, Start.")
@@ -750,6 +800,8 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& cmds, uint32
                                   std::array<vk::DeviceSize, 1>   offsets = { 0 };
                                   cmds[idx].bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
                                   cmds[idx].bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
+
+                                  cmds[idx].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, m_DescriptorSets[idx], nullptr);
 
                                   cmds[idx].drawIndexed(static_cast<uint32_t>(g_TriangleIndices.size()), 1, 0, 0, 0);
                                   cmds[idx].endRenderPass();
@@ -1039,7 +1091,7 @@ void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
     ubo.modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.viewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.projectMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(m_SwapChainExtent.width) / m_SwapChainExtent.height, 0.1f, 10.0f);
-    ubo.projectMatrix[1][1] *= -1;
+    ubo.projectMatrix[1][1] *= -1;  // for vulkan
 
     void* data;
     VkUtils::VerifyResult(m_Device.mapMemory(m_UniformBuffersMemory[idx], 0, sizeof(ubo), {}), "Failed to map index buffer memory!", &data);

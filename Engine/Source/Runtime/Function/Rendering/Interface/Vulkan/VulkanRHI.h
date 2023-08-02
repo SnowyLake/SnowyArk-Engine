@@ -123,9 +123,13 @@ private:
     std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
 
     vk::RenderPass m_RenderPass;
+
+    vk::DescriptorPool m_DescriptorPool;
     vk::DescriptorSetLayout m_DescriptorSetLayout;
-    vk::Pipeline m_GraphicsPipeline;
+    std::vector<vk::DescriptorSet> m_DescriptorSets;
+
     vk::PipelineLayout m_PipelineLayout;
+    vk::Pipeline m_GraphicsPipeline;
 
     vk::CommandPool m_CommandPool;
     std::vector<vk::CommandBuffer> m_CommandBuffers;
@@ -171,6 +175,8 @@ private:
     void CreateVertexBuffer(In<std::vector<Vertex>> triangleVertices);
     void CreateIndexBuffer(In<std::vector<uint16_t>> triangleIndices);
     void CreateUniformBuffer();
+    void CreateDescriptorPool();
+    void CreateDescriptorSets();
     void CreateSyncObjects();
     void ReCreateSwapChain();
     void CleanupSwapChain();
