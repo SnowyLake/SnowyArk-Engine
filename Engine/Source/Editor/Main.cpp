@@ -6,7 +6,7 @@
 int main()
 {
     namespace Ark = Snowy::Ark;
-
+    
     try
     {
         Ark::Engine* engine = new Ark::Engine();

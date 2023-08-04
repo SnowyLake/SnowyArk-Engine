@@ -14,6 +14,7 @@
 
 #include "Engine/Source/Runtime/Core/SnowyCore/ArgumentWapper.hpp"
 #include "Engine/Source/Runtime/Core/SnowyCore/SingletonWrapper.hpp"
+#include "Engine/Source/Runtime/Core/SnowyCore/TypeUtils.hpp"
 
 #include "Engine/Source/Runtime/Core/Base/Macro.h"
 #include "Engine/Source/Runtime/Core/Base/Define.h"

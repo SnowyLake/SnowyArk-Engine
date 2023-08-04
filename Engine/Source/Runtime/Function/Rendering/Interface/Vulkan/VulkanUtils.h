@@ -17,7 +17,7 @@ concept IsVerifyFunc = requires(R result, V verifyFunc)
 class VulkanRHI;
 
 // Vulkan Utils
-class VkUtils
+class VulkanUtils
 {
 public:
     /*----------------------------------------------------------*/
@@ -31,7 +31,7 @@ public:
         }
     }
     template<typename T>
-    static void VerifyResult(const vk::ResultValue<T>& result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(TIn(vk::ResultValue<T>) result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result.result != targetResult)
         {
@@ -44,13 +44,15 @@ public:
             }
         }
     }
+
     template<typename F> requires IsVerifyFunc<vk::Result, F>
-    static void VerifyResult(vk::Result result, const F& verifyFunc)
+    static void VerifyResult(vk::Result result, TIn(F) verifyFunc)
     {
         verifyFunc(result);
     }
+
     template<typename T, typename F> requires IsVerifyFunc<vk::ResultValue<T>, F>
-    static void VerifyResult(const vk::ResultValue<T>& result, const F& verifyFunc)
+    static void VerifyResult(TIn(vk::ResultValue<T>) result, TIn(F) verifyFunc)
     {
         verifyFunc(result);
     }
@@ -64,6 +66,6 @@ public:
                                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                               void* pUserData);
 
-    static void CopyBuffer(Handle<VulkanRHI> vkHandle, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+    static void CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 };
 }

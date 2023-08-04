@@ -4,13 +4,13 @@ namespace Snowy::Ark
 {
 void Engine::Init(ERHIBackend type)
 {
-    m_RHI = RHIManager::CreateRHI(type);
+    m_RHIContext = RHIManager::CreateRHI(type);
 
     
 }
 void Engine::Run()
 {
-    m_RHI->Run();
+    m_RHIContext->Run();
 }
 void Engine::Destroy()
 {

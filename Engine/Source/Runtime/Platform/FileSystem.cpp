@@ -1,15 +1,12 @@
 #include "FileSystem.h"
 namespace Snowy::Ark
 {
+std::string currentPath = std::filesystem::current_path().generic_string();
+extern std::string g_EngineRootPath = currentPath.substr(0, currentPath.rfind("/Engine/") + 1);
+
 FileSystem::FileSystem()
 {
-    auto path = std::filesystem::current_path().generic_string();
-    EngineRootPath = path.substr(0, path.rfind("/Engine/") + 1);
-}
 
-std::string FileSystem::FullPath(const std::string& filePath)
-{
-    return EngineRootPath + filePath;
 }
 
 std::vector<char> FileSystem::ReadSpirvShaderBinary(const std::string& filePath)

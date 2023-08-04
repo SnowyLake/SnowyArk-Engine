@@ -9,9 +9,9 @@ public:
     void Init(ERHIBackend type);
     void Run();
     void Destroy();
-
+    
 private:
-    std::shared_ptr<RHI> m_RHI;
+    SharedHandle<RHI> m_RHIContext;
 };
 }
 

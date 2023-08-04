@@ -96,6 +96,7 @@ struct SwapChainSupportDetails
 
 class VulkanRHI final : public RHI
 {
+    using Utils = VulkanUtils;
 public:
     VulkanRHI();
     ~VulkanRHI();
@@ -190,7 +191,7 @@ private:
     }
 
 // ==============================================
-// Tool Functions, TODO: VkUtils
+// Tool Functions, TODO: Utils
 // ==============================================
 private:
     bool CheckValidationLayerSupport();

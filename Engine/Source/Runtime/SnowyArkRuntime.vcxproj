@@ -159,6 +159,7 @@
     <ClInclude Include="Core\Base\Macro.h" />
     <ClInclude Include="Core\SnowyCore\ArgumentWapper.hpp" />
     <ClInclude Include="Core\SnowyCore\SingletonWrapper.hpp" />
+    <ClInclude Include="Core\SnowyCore\TypeUtils.hpp" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
     <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />

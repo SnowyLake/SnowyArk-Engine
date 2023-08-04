@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanRHI.h"
 namespace Snowy::Ark
 {
-vk::Bool32 VKAPI_CALL VkUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
+vk::Bool32 VKAPI_CALL VulkanUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
                                                             VkDebugUtilsMessageTypeFlagsEXT messageType, 
                                                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
                                                             void* pUserData)
@@ -12,11 +12,11 @@ vk::Bool32 VKAPI_CALL VkUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageS
     return RHI_FALSE;
 }
 
-void VkUtils::CopyBuffer(Handle<VulkanRHI> vkHandle, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
-    auto& device = vkHandle->Device();
-    auto& cmdPool = vkHandle->CommandPool();
-    auto& submitQueue = vkHandle->GraphicsQueue();
+    auto& device = vkContext->Device();
+    auto& cmdPool = vkContext->CommandPool();
+    auto& submitQueue = vkContext->GraphicsQueue();
 
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = cmdPool,
@@ -51,7 +51,7 @@ void VkUtils::CopyBuffer(Handle<VulkanRHI> vkHandle, vk::Buffer srcBuffer, vk::B
                              .dstOffset = 0,
                              .size = size,
                          };
-                         cmd.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
+                         cmd.copyBuffer(srcBuffer, dstBuffer, copyRegion);
                          VerifyResult(cmd.end(), "Failed to end recording copybuffer command!");
                      }
                  });
