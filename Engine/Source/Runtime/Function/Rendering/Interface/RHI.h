@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 
 #if defined(RHI_VULKAN)

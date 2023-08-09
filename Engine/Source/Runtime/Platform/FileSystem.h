@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 
 #define ENGINE_PATH(localPath) g_EngineRootPath + localPath
@@ -15,6 +15,6 @@ private:
     ~FileSystem() = default;
 
 public:
-    std::vector<char> ReadSpirvShaderBinary(const std::string& filePath);
+    std::vector<char> ReadSpirvShaderBinary(StringIn path);
 };
 }

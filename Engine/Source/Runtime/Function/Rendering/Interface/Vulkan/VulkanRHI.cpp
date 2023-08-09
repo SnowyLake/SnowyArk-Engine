@@ -1,4 +1,4 @@
-#include "VulkanRHI.h"
+Ôªø#include "VulkanRHI.h"
 #include "Engine/Source/Runtime/Platform/FileSystem.h"
 
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -361,13 +361,15 @@ void VulkanRHI::CreateGraphicsPipeline()
     LOG("Create Graphics Pipeline, Start.");
 
     auto&& fs = FileSystem::GetInstance();
-    auto vertShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv")));
+    auto vertShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv"));
+    auto vertShaderModule = CreateShaderModule(vertShaderBinary);
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = vertShaderModule,
         .pName = "main",
     };
-    auto fragShaderModule = CreateShaderModule(fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/frag.spv")));
+    auto fragShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/frag.spv"));
+    auto fragShaderModule = CreateShaderModule(fragShaderBinary);
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eFragment,
         .module = fragShaderModule,
@@ -591,7 +593,7 @@ void VulkanRHI::CreateCommandBuffers()
     LOG("Create Command Buffers, Complete.")
 }
 
-void VulkanRHI::CreateVertexBuffer(In<std::vector<Vertex>> triangleVertices)
+void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
 {
 
     vk::DeviceSize bufferSize = sizeof(GetDecayedType(triangleVertices)::value_type) * triangleVertices.size();
@@ -617,7 +619,7 @@ void VulkanRHI::CreateVertexBuffer(In<std::vector<Vertex>> triangleVertices)
     m_Device.freeMemory(stagingBufferMemory);
 }
 
-void VulkanRHI::CreateIndexBuffer(In<std::vector<uint16_t>> triangleIndices)
+void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 {
     vk::DeviceSize bufferSize = sizeof(GetDecayedType(triangleIndices)::value_type) * triangleIndices.size();
     vk::Buffer stagingBuffer;
@@ -986,15 +988,15 @@ QueueFamilyIndices VulkanRHI::FindQueueFamilies(vk::PhysicalDevice device)
 SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(vk::PhysicalDevice device)
 {
     SwapChainSupportDetails details;
-    // ≤È—Øª˘¥°±Ì√ÊÃÿ–‘
+    // Êü•ËØ¢Âü∫Á°ÄË°®Èù¢ÁâπÊÄß
     Utils::VerifyResult(device.getSurfaceCapabilitiesKHR(m_Surface), "Failed to get Surface Capabilities!", &details.capabilities);
-    // ≤È—Ø±Ì√Ê÷ß≥÷∏Ò Ω
+    // Êü•ËØ¢Ë°®Èù¢ÊîØÊåÅÊ†ºÂºè
     Utils::VerifyResult(device.getSurfaceFormatsKHR(m_Surface), "Failed to get Surface Formats!", &details.formats);
-    // ≤È—Ø÷ß≥÷µƒ≥ œ÷∑Ω Ω
+    // Êü•ËØ¢ÊîØÊåÅÁöÑÂëàÁé∞ÊñπÂºè
     Utils::VerifyResult(device.getSurfacePresentModesKHR(m_Surface), "Failed to get Surface PresentModes!", &details.presentModes);
     return details;
 }
-vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(std::span<vk::SurfaceFormatKHR> availableFormats)
+vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats)
 {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined)
     {
@@ -1010,7 +1012,7 @@ vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(std::span<vk::SurfaceForma
     }
     return availableFormats[0];
 }
-vk::PresentModeKHR VulkanRHI::ChooseSwapPresentMode(std::span<vk::PresentModeKHR> availablePresentModes)
+vk::PresentModeKHR VulkanRHI::ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes)
 {
     auto bestMode = vk::PresentModeKHR::eFifo;
     for (const auto& availablePresentMode : availablePresentModes)
@@ -1026,7 +1028,7 @@ vk::PresentModeKHR VulkanRHI::ChooseSwapPresentMode(std::span<vk::PresentModeKHR
     }
     return bestMode;
 }
-vk::Extent2D VulkanRHI::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+vk::Extent2D VulkanRHI::ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities)
 {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
     {
@@ -1042,7 +1044,7 @@ vk::Extent2D VulkanRHI::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capab
         return actualExtent;
     }
 }
-vk::ShaderModule VulkanRHI::CreateShaderModule(const std::vector<char>& code)
+vk::ShaderModule VulkanRHI::CreateShaderModule(ArrayIn<char> code)
 {
     vk::ShaderModule shaderModule;
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <type_traits>
 namespace Snowy
 {
@@ -14,4 +14,11 @@ template<typename T, typename... Args>
 inline constexpr UniqueHandle<T> MakeUnique(Args&&... args) { return std::make_unique<T>(std::forward<Args>(args)...); }
 template<typename T, typename... Args>
 inline constexpr SharedHandle<T> MakeShared(Args&&... args) { return std::make_shared<T>(std::forward<Args>(args)...); }
+
+// Argument Wrapper
+template<typename T> using In = const T&;
+template<typename T> using ArrayIn = std::span<T>;
+                     using StringIn = std::string_view;
+
+template<typename T> using Out = T* const;
 }

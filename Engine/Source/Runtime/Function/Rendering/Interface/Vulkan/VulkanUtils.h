@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 
@@ -31,7 +31,7 @@ public:
         }
     }
     template<typename T>
-    static void VerifyResult(TIn(vk::ResultValue<T>) result, In<std::string> errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(In<vk::ResultValue<T>> result, StringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result.result != targetResult)
         {
@@ -46,13 +46,13 @@ public:
     }
 
     template<typename F> requires IsVerifyFunc<vk::Result, F>
-    static void VerifyResult(vk::Result result, TIn(F) verifyFunc)
+    static void VerifyResult(vk::Result result, In<F> verifyFunc)
     {
         verifyFunc(result);
     }
 
     template<typename T, typename F> requires IsVerifyFunc<vk::ResultValue<T>, F>
-    static void VerifyResult(TIn(vk::ResultValue<T>) result, TIn(F) verifyFunc)
+    static void VerifyResult(In<vk::ResultValue<T>> result, In<F> verifyFunc)
     {
         verifyFunc(result);
     }

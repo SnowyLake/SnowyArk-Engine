@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHIManager.h"
 namespace Snowy::Ark

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
@@ -51,13 +51,13 @@ struct Vertex
     }
 };
 
-const std::vector<Vertex> g_TriangleVertices = {
+static std::vector<Vertex> g_TriangleVertices = {
     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
     {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
     {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
 };
-const std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
+static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 600;
@@ -173,8 +173,8 @@ private:
     void CreateFramebuffers();
     void CreateCommandPool();
     void CreateCommandBuffers();
-    void CreateVertexBuffer(In<std::vector<Vertex>> triangleVertices);
-    void CreateIndexBuffer(In<std::vector<uint16_t>> triangleIndices);
+    void CreateVertexBuffer(ArrayIn<Vertex> triangleVertices);
+    void CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices);
     void CreateUniformBuffer();
     void CreateDescriptorPool();
     void CreateDescriptorSets();
@@ -200,10 +200,10 @@ private:
     bool IsDeviceSuitable(vk::PhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
-    vk::SurfaceFormatKHR ChooseSwapChainFormat(std::span<vk::SurfaceFormatKHR> availableFormats);
-    vk::PresentModeKHR ChooseSwapPresentMode(std::span<vk::PresentModeKHR> availablePresentModes);
-    vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
-    vk::ShaderModule CreateShaderModule(const std::vector<char>& code);
+    vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
+    vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
+    vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);
+    vk::ShaderModule CreateShaderModule(ArrayIn<char> code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
     void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);
     void UpdateUniformBuffer(uint32_t idx);

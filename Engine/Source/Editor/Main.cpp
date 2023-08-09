@@ -3,6 +3,7 @@
 #pragma comment(lib, "vulkan-1.lib")
 #pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "SnowyArkRuntime.lib")
+
 int main()
 {
     namespace Ark = Snowy::Ark;

@@ -1,4 +1,4 @@
-#include "FileSystem.h"
+﻿#include "FileSystem.h"
 namespace Snowy::Ark
 {
 std::string currentPath = std::filesystem::current_path().generic_string();
@@ -9,12 +9,12 @@ FileSystem::FileSystem()
 
 }
 
-std::vector<char> FileSystem::ReadSpirvShaderBinary(const std::string& filePath)
+std::vector<char> FileSystem::ReadSpirvShaderBinary(StringIn path)
 {
-    std::ifstream file(filePath, std::ios::ate | std::ios::binary);
+    std::ifstream file(path.data(), std::ios::ate | std::ios::binary);
     if (!file.is_open())
     {
-        throw std::runtime_error(std::format("Failed to open file: {}", filePath));
+        throw std::runtime_error(std::format("Failed to open file: {}", path));
     }
     size_t fileSize = static_cast<size_t>(file.tellg());
     std::vector<char> buffer(fileSize);
