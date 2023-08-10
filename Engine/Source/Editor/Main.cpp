@@ -7,7 +7,7 @@
 int main()
 {
     namespace Ark = Snowy::Ark;
-    
+
     try
     {
         Ark::Engine* engine = new Ark::Engine();
@@ -20,11 +20,10 @@ int main()
 
         editor->Destroy();
         engine->Destroy();
-
-    } catch(const std::exception& e) 
+    } catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
-    return EXIT_SUCCESS; 
+    return EXIT_SUCCESS;
 }

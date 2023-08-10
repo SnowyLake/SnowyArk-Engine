@@ -8,7 +8,7 @@ namespace Snowy::Ark
 using Utils = VulkanUtils;
 
 void CreateDebugUtilsMessengerEXT(vk::Instance instance, const vk::DebugUtilsMessengerCreateInfoEXT& createInfo, vk::Optional<const vk::AllocationCallbacks> allocator,
-                                        vk::DebugUtilsMessengerEXT* pCallback)
+                                  vk::DebugUtilsMessengerEXT* pCallback)
 {
     Utils::VerifyResult(instance.createDebugUtilsMessengerEXT(createInfo, allocator), "Failed to set up debug callback!", pCallback);
 }
@@ -109,7 +109,7 @@ void VulkanRHI::Cleanup()
         m_Device.destroySemaphore(m_RenderFinishedSemaphores[i]);
         m_Device.destroyFence(m_InFlightFences[i]);
     }
-        
+
     m_Device.destroyCommandPool(m_CommandPool);
     m_Device.destroy();
     if (g_EnableValidationLayers)
@@ -167,7 +167,7 @@ void VulkanRHI::CreateInstance()
 }
 void VulkanRHI::SetupDebugCallback()
 {
-    LOG("Setup Debug Callback, Start.")
+    LOG("Setup Debug Callback, Start.");
     if (!g_EnableValidationLayers)
     {
         return;
@@ -184,7 +184,7 @@ void VulkanRHI::SetupDebugCallback()
 }
 void VulkanRHI::CreateSurface()
 {
-    LOG("Create Surface, Start.")
+    LOG("Create Surface, Start.");
     if (glfwCreateWindowSurface(m_Instance, m_Window, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface!");
@@ -361,7 +361,7 @@ void VulkanRHI::CreateGraphicsPipeline()
     LOG("Create Graphics Pipeline, Start.");
 
     auto&& fs = FileSystem::GetInstance();
-    auto vertShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv"));
+    auto vertShaderBinary = fs.ReadSpirvShaderBinary(StringProxy(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv")));
     auto vertShaderModule = CreateShaderModule(vertShaderBinary);
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eVertex,
@@ -391,28 +391,28 @@ void VulkanRHI::CreateGraphicsPipeline()
         .topology = vk::PrimitiveTopology::eTriangleList,
         .primitiveRestartEnable = RHI_FALSE,
     };
-        
+
     vk::Viewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
         .width = static_cast<float>(m_SwapChainExtent.width),
         .height = static_cast<float>(m_SwapChainExtent.height),
         .minDepth = 0.0f,
-        .maxDepth = 1.0f,  
+        .maxDepth = 1.0f,
     };
 
     vk::Rect2D scissor = {
         .offset = {0, 0},
         .extent = m_SwapChainExtent,
     };
-        
+
     vk::PipelineViewportStateCreateInfo viewportState = {
         .viewportCount = 1,
         .pViewports = &viewport,
         .scissorCount = 1,
         .pScissors = &scissor,
     };
-        
+
     vk::PipelineRasterizationStateCreateInfo rasterizer = {
         .depthClampEnable = RHI_FALSE,
         .rasterizerDiscardEnable = RHI_FALSE,
@@ -425,7 +425,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .depthBiasSlopeFactor = 0.0f,
         .lineWidth = 1.0f,
     };
-        
+
     vk::PipelineMultisampleStateCreateInfo multisampling = {
         .rasterizationSamples = vk::SampleCountFlagBits::e1,
         .sampleShadingEnable = RHI_FALSE,
@@ -446,7 +446,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .alphaBlendOp = vk::BlendOp::eAdd,
         .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
     };
-        
+
     vk::PipelineColorBlendStateCreateInfo colorBlending = {
         .logicOpEnable = RHI_FALSE,
         .logicOp = vk::LogicOp::eCopy,
@@ -461,14 +461,14 @@ void VulkanRHI::CreateGraphicsPipeline()
         .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
         .pDynamicStates = dynamicStates.data(),
     };
-        
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {
         .setLayoutCount = 1,
         .pSetLayouts = &m_DescriptorSetLayout,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr,
     };
-        
+
     Utils::VerifyResult(m_Device.createPipelineLayout(pipelineLayoutInfo), "Failed to create pipeline layout!", &m_PipelineLayout);
 
     vk::GraphicsPipelineCreateInfo graphicsPipelineInfo = {
@@ -488,7 +488,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .basePipelineHandle = RHI_NULL_HANDLE,
         .basePipelineIndex = -1,
     };
-        
+
     Utils::VerifyResult(m_Device.createGraphicsPipeline(RHI_NULL_HANDLE, graphicsPipelineInfo),
                         "Failed to create graphics pipeline!", &m_GraphicsPipeline);
 
@@ -511,7 +511,7 @@ void VulkanRHI::CreateRenderPass()
         .initialLayout = vk::ImageLayout::eUndefined,
         .finalLayout = vk::ImageLayout::ePresentSrcKHR,
     };
-        
+
     vk::AttachmentReference colorAttachmentRef = {
         .attachment = 0,
         .layout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -522,7 +522,7 @@ void VulkanRHI::CreateRenderPass()
         .colorAttachmentCount = 1,
         .pColorAttachments = &colorAttachmentRef,
     };
-        
+
     vk::SubpassDependency subpassDependency = {
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0,
@@ -531,7 +531,7 @@ void VulkanRHI::CreateRenderPass()
         .srcAccessMask = vk::AccessFlagBits::eNone,
         .dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
     };
-        
+
     vk::RenderPassCreateInfo renderPassInfo = {
         .attachmentCount = 1,
         .pAttachments = &colorAttachmentDesc,
@@ -540,14 +540,14 @@ void VulkanRHI::CreateRenderPass()
         .dependencyCount = 1,
         .pDependencies = &subpassDependency,
     };
-        
+
     Utils::VerifyResult(m_Device.createRenderPass(renderPassInfo, nullptr), "Failed to create render pass!", &m_RenderPass);
     LOG("Create Render Pass, Complete.")
 }
 void VulkanRHI::CreateFramebuffers()
 {
     LOG("Create Framebuffers, Start.")
-    m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
+        m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
     for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
     {
         std::array<vk::ImageView, 1> attachments{ m_SwapChainImageViews[i] };
@@ -560,7 +560,7 @@ void VulkanRHI::CreateFramebuffers()
             .height = m_SwapChainExtent.height,
             .layers = 1,
         };
-            
+
         Utils::VerifyResult(m_Device.createFramebuffer(framebufferInfo, nullptr),
                             std::format("Failed to create framebuffer[{}]!", i), &m_SwapChainFramebuffers[i]);
     }
@@ -569,7 +569,7 @@ void VulkanRHI::CreateFramebuffers()
 void VulkanRHI::CreateCommandPool()
 {
     LOG("Create Command Pool, Start.")
-    auto queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
+        auto queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
 
     vk::CommandPoolCreateInfo createInfo = {
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -582,7 +582,7 @@ void VulkanRHI::CreateCommandPool()
 void VulkanRHI::CreateCommandBuffers()
 {
     LOG("Create Command Buffers, Start.")
-    m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
+        m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = m_CommandPool,
@@ -600,7 +600,7 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, 
+    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
                  vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                  &stagingBuffer, &stagingBufferMemory);
 
@@ -625,8 +625,8 @@ void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, 
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, 
+    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                  &stagingBuffer, &stagingBufferMemory);
 
     void* data;
@@ -653,7 +653,7 @@ void VulkanRHI::CreateUniformBuffer()
 
     for (size_t i = 0; i < bufferCount; i++)
     {
-        CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, 
+        CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
                      vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                      &m_UniformBuffers[i], &m_UniformBuffersMemory[i]);
     }
@@ -675,7 +675,7 @@ void VulkanRHI::CreateDescriptorPool()
 void VulkanRHI::CreateDescriptorSets()
 {
     LOG("Create Descriptor Sets, Start.")
-    std::vector<vk::DescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
+        std::vector<vk::DescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo = {
         .descriptorPool = m_DescriptorPool,
         .descriptorSetCount = static_cast<uint32_t>(m_SwapChainImages.size()),
@@ -708,7 +708,7 @@ void VulkanRHI::CreateDescriptorSets()
 void VulkanRHI::CreateSyncObjects()
 {
     LOG("Create Semaphores, Start.")
-    m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+        m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -735,7 +735,7 @@ void VulkanRHI::ReCreateSwapChain()
 {
     int width = 0, height = 0;
     glfwGetFramebufferSize(m_Window, &width, &height);
-    while (width == 0 || height == 0) 
+    while (width == 0 || height == 0)
     {
         glfwGetFramebufferSize(m_Window, &width, &height);
         glfwWaitEvents();
@@ -1000,7 +1000,7 @@ vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatK
 {
     if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined)
     {
-        return {vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear};
+        return { vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
     }
 
     for (const auto& availableFormat : availableFormats)
@@ -1020,8 +1020,7 @@ vk::PresentModeKHR VulkanRHI::ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> 
         if (availablePresentMode == vk::PresentModeKHR::eMailbox)
         {
             return availablePresentMode;
-        }
-        else
+        } else
         {
             bestMode = vk::PresentModeKHR::eImmediate;
         }
@@ -1033,12 +1032,11 @@ vk::Extent2D VulkanRHI::ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabili
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
     {
         return capabilities.currentExtent;
-    }
-    else
+    } else
     {
         int actualWidth, actualHeight;
         glfwGetFramebufferSize(m_Window, &actualWidth, &actualHeight);
-        vk::Extent2D actualExtent = {static_cast<uint32_t>(actualWidth), static_cast<uint32_t>(actualHeight)};
+        vk::Extent2D actualExtent = { static_cast<uint32_t>(actualWidth), static_cast<uint32_t>(actualHeight) };
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
         return actualExtent;

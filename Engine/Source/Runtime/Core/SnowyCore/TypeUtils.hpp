@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <type_traits>
+#include <memory>
 namespace Snowy
 {
 #define GetDecayedType(value) std::decay_t<decltype(value)>
@@ -18,7 +18,7 @@ inline constexpr SharedHandle<T> MakeShared(Args&&... args) { return std::make_s
 // Argument Wrapper
 template<typename T> using In = const T&;
 template<typename T> using ArrayIn = std::span<T>;
-                     using StringIn = std::string_view;
+using StringIn = std::string_view;
 
 template<typename T> using Out = T* const;
 }

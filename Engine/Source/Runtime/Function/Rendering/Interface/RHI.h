@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 
-#if defined(RHI_VULKAN)
+#if defined(SNOWY_ARK_RHI_VULKAN)
 #define RHI_TRUE            VK_TRUE
 #define RHI_FALSE           VK_FALSE
 #define RHI_NULL_HANDLE     VK_NULL_HANDLE

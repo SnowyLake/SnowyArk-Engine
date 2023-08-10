@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 /* ---------------------------------------------------- */
-/* ThirdParty                                           */ 
+/* ThirdParty                                           */
 /* ---------------------------------------------------- */
 // Vulkan Core
 #define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
@@ -21,8 +21,4 @@
 /* SnowyArk Engine                                      */
 /* ---------------------------------------------------- */
 // RHI
-#define RHI_VULKAN 1
-
-
-
-
+#define SNOWY_ARK_RHI_VULKAN
