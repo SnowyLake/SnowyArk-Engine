@@ -9,7 +9,7 @@ FileSystem::FileSystem()
 
 }
 
-std::vector<char> FileSystem::ReadSpirvShaderBinary(StringIn path)
+std::vector<char> FileSystem::ReadSpirvShaderBinary(AStringIn path)
 {
     std::ifstream file(path.data(), std::ios::ate | std::ios::binary);
     if (!file.is_open())

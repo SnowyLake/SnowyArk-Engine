@@ -15,6 +15,6 @@ private:
     ~FileSystem() = default;
 
 public:
-    std::vector<char> ReadSpirvShaderBinary(StringIn path);
+    std::vector<char> ReadSpirvShaderBinary(AStringIn path);
 };
 }

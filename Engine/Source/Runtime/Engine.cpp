@@ -11,6 +11,5 @@ void Engine::Run()
     m_RHIContext->Run();
 }
 void Engine::Destroy()
-{
-}
+{}
 }

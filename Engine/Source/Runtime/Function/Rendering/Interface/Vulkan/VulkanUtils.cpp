@@ -2,17 +2,17 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanRHI.h"
 namespace Snowy::Ark
 {
-vk::Bool32 VKAPI_CALL VulkanUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
-                                                            VkDebugUtilsMessageTypeFlagsEXT messageType, 
-                                                            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, 
-                                                            void* pUserData)
+vk::Bool32 VKAPI_CALL VulkanUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                                VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                                const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                                void* pUserData)
 
 {
     std::cerr << std::format("Validation layer: {}\n", pCallbackData->pMessage);
     return RHI_FALSE;
 }
 
-void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+void VulkanUtils::CopyBuffer(ObserverHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
     auto& device = vkContext->Device();
     auto& cmdPool = vkContext->CommandPool();
@@ -29,7 +29,7 @@ void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffe
                  [&](const auto& result) {
                      if (result.result != vk::Result::eSuccess)
                      {
-                         throw std::runtime_error("Failed to allocate copybuffer command!");
+                         throw std::runtime_error(ANSI_TEXT("Failed to allocate copybuffer command!"));
                      } else
                      {
                          cmd = result.value[0];
@@ -43,7 +43,7 @@ void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffe
                  [&](auto result) {
                      if (result != vk::Result::eSuccess)
                      {
-                         throw std::runtime_error("Failed to begin recording copybuffer command!");
+                         throw std::runtime_error(ANSI_TEXT("Failed to begin recording copybuffer command!"));
                      } else
                      {
                          vk::BufferCopy copyRegion = {
@@ -52,7 +52,7 @@ void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffe
                              .size = size,
                          };
                          cmd.copyBuffer(srcBuffer, dstBuffer, copyRegion);
-                         VerifyResult(cmd.end(), "Failed to end recording copybuffer command!");
+                         VerifyResult(cmd.end(), STEXT("Failed to end recording copybuffer command!"));
                      }
                  });
 
@@ -60,7 +60,7 @@ void VulkanUtils::CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffe
         .commandBufferCount = 1,
         .pCommandBuffers = &cmd,
     };
-    VerifyResult(submitQueue.submit(submitInfo), "Failed to submit copybuffer command!");
+    VerifyResult(submitQueue.submit(submitInfo), STEXT("Failed to submit copybuffer command!"));
     auto _ = submitQueue.waitIdle();
     device.freeCommandBuffers(cmdPool, cmd);
 }

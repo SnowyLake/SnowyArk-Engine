@@ -23,11 +23,11 @@ public:
     /*----------------------------------------------------------*/
     // Vulkan Result Process Function
     /*----------------------------------------------------------*/
-    static void VerifyResult(vk::Result result, In<std::string> errorMsg, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(vk::Result result, StringIn errorMsg, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result != targetResult)
         {
-            throw std::runtime_error(static_cast<std::string>(errorMsg));
+            throw std::runtime_error(WIDE_TO_ANSI(errorMsg));
         }
     }
     template<typename T>
@@ -35,7 +35,7 @@ public:
     {
         if (result.result != targetResult)
         {
-            throw std::runtime_error(static_cast<std::string>(errorMsg));
+            throw std::runtime_error(WIDE_TO_ANSI(errorMsg));
         } else
         {
             if (output)
@@ -66,6 +66,6 @@ public:
                                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                               void* pUserData);
 
-    static void CopyBuffer(RawHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+    static void CopyBuffer(ObserverHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 };
 }

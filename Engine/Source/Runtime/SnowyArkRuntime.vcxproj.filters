@@ -79,6 +79,9 @@
     <ClInclude Include="Core\SnowyCore\SnowyCore.hpp">
       <Filter>Core\SnowyCore</Filter>
     </ClInclude>
+    <ClInclude Include="Core\SnowyCore\Platform.hpp">
+      <Filter>Core\SnowyCore</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">

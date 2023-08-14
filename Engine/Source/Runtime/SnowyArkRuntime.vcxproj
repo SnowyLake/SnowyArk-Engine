@@ -157,6 +157,7 @@
     <ClInclude Include="Core\Base\Common.h" />
     <ClInclude Include="Core\Base\Define.h" />
     <ClInclude Include="Core\Base\Macro.h" />
+    <ClInclude Include="Core\SnowyCore\Platform.hpp" />
     <ClInclude Include="Core\SnowyCore\SingletonWrapper.hpp" />
     <ClInclude Include="Core\SnowyCore\SnowyCore.hpp" />
     <ClInclude Include="Core\SnowyCore\StringUtils.hpp" />
