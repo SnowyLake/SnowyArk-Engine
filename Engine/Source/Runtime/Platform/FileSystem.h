@@ -7,14 +7,14 @@ namespace Snowy::Ark
 {
 extern std::string g_EngineRootPath;
 
-class FileSystem final : public Singleton<FileSystem>
+class FileSystem final : public TSingleton<FileSystem>
 {
 private:
-    friend class Singleton<FileSystem>;
+    friend class TSingleton<FileSystem>;
     FileSystem();
     ~FileSystem() = default;
 
 public:
-    std::vector<char> ReadSpirvShaderBinary(AStringIn path);
+    std::vector<char> ReadSpirvShaderBinary(AnsiStringIn path);
 };
 }

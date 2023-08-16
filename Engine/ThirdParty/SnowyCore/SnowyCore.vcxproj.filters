@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{75e2429e-bb96-46d4-8895-03e07625a72c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{41aac314-6881-48df-90b9-fef86a1782bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\utf8">
+      <UniqueIdentifier>{aa675ac4-62e8-465c-b507-cd57df8cf816}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\utf8\utf8">
+      <UniqueIdentifier>{c4346942-5147-4efb-89d4-2aa98ebb6d74}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Platform.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Singleton.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\String.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TypeDefines.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8.h">
+      <Filter>ThirdParty\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8\checked.h">
+      <Filter>ThirdParty\utf8\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8\core.h">
+      <Filter>ThirdParty\utf8\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8\cpp11.h">
+      <Filter>ThirdParty\utf8\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8\cpp17.h">
+      <Filter>ThirdParty\utf8\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\utf8\utf8\unchecked.h">
+      <Filter>ThirdParty\utf8\utf8</Filter>
+    </ClInclude>
+    <ClInclude Include="SnowyCore.hpp" />
+  </ItemGroup>
+</Project>

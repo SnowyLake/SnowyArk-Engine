@@ -23,7 +23,7 @@ public:
     /*----------------------------------------------------------*/
     // Vulkan Result Process Function
     /*----------------------------------------------------------*/
-    static void VerifyResult(vk::Result result, StringIn errorMsg, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(vk::Result result, SStringIn errorMsg, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result != targetResult)
         {
@@ -31,7 +31,7 @@ public:
         }
     }
     template<typename T>
-    static void VerifyResult(In<vk::ResultValue<T>> result, StringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(In<vk::ResultValue<T>> result, SStringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result.result != targetResult)
         {

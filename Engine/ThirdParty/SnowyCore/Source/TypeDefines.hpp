@@ -1,17 +1,28 @@
 ﻿#pragma once
-#include "Platform.hpp"
 #include <memory>
+#include <string>
+#include <type_traits>
 
-#define DecayedTypeOf(v) std::decay_t<decltype(v)>
-#define NameOf(v) #v
+#include "Platform.hpp"
+
+#define DecayedTypeOf(x) std::decay_t<decltype(x)>
+#define NameOf(x) #x
 
 namespace Snowy
 {
-// Pointer Wrapper
+// -------------------------------------------------------------
+// Smart Pointer Type Define
+// -------------------------------------------------------------
+
 template<typename T> using RawHandle = T*;
 template<typename T> using UniqueHandle = std::unique_ptr<T>;
 template<typename T> using SharedHandle = std::shared_ptr<T>;
 template<typename T> using WeakHandle = std::weak_ptr<T>;
+
+/// <summary>
+/// It is used only as a function argument to access an assigned object, should never be used to allocate object.
+/// If you want allocate ownless object, use RawHandle.
+/// </summary>
 template<typename T> class ObserverHandle
 {
 public:
@@ -52,12 +63,51 @@ template<typename T, typename... Args>
 inline constexpr ObserverHandle<T> MakeObserver(Args&&... args) { return ObserverHandle<T>(std::forward<Args>(args)...); }
 
 
+// -------------------------------------------------------------
+// String Type Define
+// -------------------------------------------------------------
+
+// An ANSI char. 8-bit fixed-width representation of 7-bit chars.
+using AnsiChar = char;
+
+// A wide char. In-memory only. ?-bit fixed-width representation of the platform's natural wide char set. Could be different sizes on different platforms.
+using WideChar = wchar_t;
+
+// UTF Code char types.
+using Utf8Char = char8_t;
+using Utf16Char = char16_t;
+using Utf32Char = char32_t;
+
+// Char code macros
+#if !defined(SNOWY_CORE_CHAR_ANSI) /*|| (defined(_WIN32) && defined(UNICODE))*/ // Win32 Api
+    #define SNOWY_CORE_CHAR_WIDE
+#endif // !defined(SNOWY_CORE_CHAR_ANSI)
+
+// Char type for SnowyCore.
+#if defined(SNOWY_CORE_CHAR_WIDE)
+using SChar = WideChar;
+using SCharUtfCode = std::conditional_t<sizeof(SChar) == sizeof(Utf16Char), Utf16Char, Utf32Char>;
+#else
+using SChar = AnsiChar;
+using SCharUtfCode = Utf8Char;
+#endif  // defined(SNOWY_CORE_CHAR_WIDE)
+
+constexpr inline bool SCharTypeIsWChar = std::is_same_v<SChar, WideChar>;
+constexpr inline bool SCharCodeIsUtf16 = std::is_same_v<SCharUtfCode, Utf16Char>;
+
+// String Type Define
+using AnsiString = std::string;
+using WideString = std::wstring;
+using Utf8String = std::u8string;
+using Utf16String = std::u16string;
+using Utf32String = std::u32string;
+using SString = std::conditional_t<SCharTypeIsWChar, WideString, AnsiString>;
+
 // Argument Wrapper
 template<typename T> using In = const T&;
 template<typename T> using Ref = T&;
 template<typename T> using Out = T* const;
 template<typename T> using ArrayIn = std::span<T>;
-
 using AnsiStringIn = std::string_view;
 using WideStringIn = std::wstring_view;
 using SStringIn = std::conditional_t<SCharTypeIsWChar, WideStringIn, AnsiStringIn>;
