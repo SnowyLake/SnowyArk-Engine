@@ -728,7 +728,7 @@ void VulkanRHI::CreateSyncObjects()
         Utils::VerifyResult(m_Device.createFence(fenceInfo, nullptr),
                             STEXT("Failed to create synchronization objects for a frame!"), &m_InFlightFences[i]);
     }
-    LOG("Create Semaphores, Complete.")
+    LOG("Create Semaphores, Complete.");
 }
 
 void VulkanRHI::ReCreateSwapChain()
@@ -820,7 +820,7 @@ void VulkanRHI::DrawFrame()
     auto waitForFencesResult = m_Device.waitForFences(m_InFlightFences[m_CurrentFrame], RHI_TRUE, std::numeric_limits<uint64_t>::max());
 
     uint32_t imageIndex;
-    Utils::VerifyResult(m_Device.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(),
+    Utils::VerifyResult(m_Device.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), 
                                                      m_ImageAvailableSemaphores[m_CurrentFrame], RHI_NULL_HANDLE, &imageIndex),
                         [this](auto result) {
                             if (result == vk::Result::eErrorOutOfDateKHR)
@@ -934,11 +934,11 @@ bool VulkanRHI::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
     LOG("Check Device Extension Support, Complete.");
     return requiredExtensions.empty();
 }
-std::vector<const char*> VulkanRHI::GetRequiredExtensions()
+std::vector<RawHandle<const AnsiChar>> VulkanRHI::GetRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    RawHandle<RawHandle<const AnsiChar>> glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::vector<RawHandle<const AnsiChar>> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
     if (g_EnableValidationLayers)
     {
         extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);

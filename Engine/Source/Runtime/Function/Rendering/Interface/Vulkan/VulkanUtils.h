@@ -27,7 +27,7 @@ public:
     {
         if (result != targetResult)
         {
-            throw std::runtime_error(WIDE_TO_ANSI(errorMsg));
+            throw std::runtime_error(SSTR_TO_ANSI(errorMsg));
         }
     }
     template<typename T>
@@ -35,7 +35,7 @@ public:
     {
         if (result.result != targetResult)
         {
-            throw std::runtime_error(WIDE_TO_ANSI(errorMsg));
+            throw std::runtime_error(SSTR_TO_ANSI(errorMsg));
         } else
         {
             if (output)

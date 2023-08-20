@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SnowyCore.hpp" />
+    <ClInclude Include="Source\Misc.hpp" />
     <ClInclude Include="Source\Platform.hpp" />
     <ClInclude Include="Source\Singleton.hpp" />
     <ClInclude Include="Source\String.hpp" />
@@ -84,12 +85,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)Build\Engine\ThirdParty\SnowyCore\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\Engine\ThirdParty\SnowyCore\$(Configuration).Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)Build\Engine\ThirdParty\SnowyCore\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Build\Engine\ThirdParty\SnowyCore\$(Configuration).Intermediate\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

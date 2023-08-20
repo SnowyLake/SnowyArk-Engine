@@ -46,5 +46,8 @@
       <Filter>ThirdParty\utf8\utf8</Filter>
     </ClInclude>
     <ClInclude Include="SnowyCore.hpp" />
+    <ClInclude Include="Source\Misc.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
