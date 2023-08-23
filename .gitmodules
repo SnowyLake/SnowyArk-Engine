@@ -1,0 +1,3 @@
+[submodule "Engine/ThirdParty/SnowyCore"]
+	path = Engine/ThirdParty/SnowyCore
+	url = git@github.com:SnowyLake/SnowyCore.git
