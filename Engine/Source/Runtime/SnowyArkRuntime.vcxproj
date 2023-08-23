@@ -157,11 +157,6 @@
     <ClInclude Include="Core\Base\Common.h" />
     <ClInclude Include="Core\Base\Define.h" />
     <ClInclude Include="Core\Base\Macro.h" />
-    <ClInclude Include="Core\SnowyCore\Platform.hpp" />
-    <ClInclude Include="Core\SnowyCore\Singleton.hpp" />
-    <ClInclude Include="Core\SnowyCore\SnowyCore.hpp" />
-    <ClInclude Include="Core\SnowyCore\String.hpp" />
-    <ClInclude Include="Core\SnowyCore\TypeDefines.hpp" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
     <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />
