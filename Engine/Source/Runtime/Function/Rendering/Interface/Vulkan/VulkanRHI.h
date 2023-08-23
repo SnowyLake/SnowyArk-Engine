@@ -1,17 +1,9 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
-
-// Disable Vk Result Assert
-#if !defined(VULKAN_HPP_ASSERT_ON_RESULT)
-#define VULKAN_HPP_ASSERT_ON_RESULT
-#endif
-
-// Disable Vk API [[nodiscard]]
-#define VULKAN_HPP_NO_NODISCARD_WARNINGS
-
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
+// vulkan.hpp macros was pre define in /Engine/Source/Runtime/Core/Base/Define.h
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
