@@ -1,4 +1,8 @@
 ﻿#include "FileSystem.h"
+
+#include <filesystem>
+#include <fstream>
+
 namespace Snowy::Ark
 {
 std::string currentPath = std::filesystem::current_path().generic_string();

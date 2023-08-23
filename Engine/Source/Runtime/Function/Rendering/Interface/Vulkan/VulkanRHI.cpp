@@ -1,6 +1,8 @@
 ﻿#include "VulkanRHI.h"
 #include "Engine/Source/Runtime/Platform/FileSystem.h"
 
+#include <set>
+
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace Snowy::Ark
