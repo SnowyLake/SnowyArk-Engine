@@ -1,6 +1,15 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
+
+// Disable Vk Result Assert
+#if !defined(VULKAN_HPP_ASSERT_ON_RESULT)
+#define VULKAN_HPP_ASSERT_ON_RESULT
+#endif
+
+// Disable Vk API [[nodiscard]]
+#define VULKAN_HPP_NO_NODISCARD_WARNINGS
+
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
 #include <vulkan/vulkan.hpp>
@@ -14,7 +23,7 @@ namespace Snowy::Ark
 struct UniformBufferObject
 {
     glm::mat4 modelMatrix;
-    glm::mat4 viewMatrix;
+    glm::mat4 viewMatrix; 
     glm::mat4 projectMatrix;
 };
 
@@ -23,7 +32,7 @@ struct Vertex
     glm::vec2 position;
     glm::vec3 color;
 
-    static vk::VertexInputBindingDescription GetBindingDescription() 
+    static vk::VertexInputBindingDescription GetBindingDescription()
     {
         vk::VertexInputBindingDescription bindingDescription = {
             .binding = 0,

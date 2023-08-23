@@ -129,8 +129,8 @@ void VulkanRHI::CreateInstance()
 {
     LOG("Create Vulakn Instance, Start.");
 
-    vk::DynamicLoader dl;
-    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+    vk::DynamicLoader loader;
+    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
     if (g_EnableValidationLayers && !CheckValidationLayerSupport())
@@ -258,6 +258,8 @@ void VulkanRHI::CreateLogicalDevice()
     }
 
     Utils::VerifyResult(m_PhysicalDevice.createDevice(createInfo, nullptr), STEXT("Failed to create logical device!"), &m_Device);
+
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Device);
 
     m_GraphicsQueue = m_Device.getQueue(indices.graphicsFamily.value(), 0);
     m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
@@ -741,7 +743,7 @@ void VulkanRHI::ReCreateSwapChain()
         glfwWaitEvents();
     }
 
-    auto _ = m_Device.waitIdle();
+    m_Device.waitIdle();
 
     CleanupSwapChain();
 
