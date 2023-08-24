@@ -19,7 +19,7 @@ void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessenge
     instance.destroyDebugUtilsMessengerEXT(*pCallback, allocator);
 }
 
-void VulkanRHI::Init()
+void VulkanRHI::Init(RHIConfig config)
 {
     InitWindow();
     InitVulkan();

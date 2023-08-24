@@ -101,7 +101,7 @@ class VulkanRHI final : public RHI
 public:
     VulkanRHI() = default;
     ~VulkanRHI() = default;
-    void Init() override;
+    void Init(RHIConfig config) override;
     void Run() override;
     void Destory() override;
 

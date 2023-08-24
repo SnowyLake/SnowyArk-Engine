@@ -1,7 +1,7 @@
 ﻿#include "GlobalContext.h"
 namespace Snowy::Ark
 {
-RuntimeGlobalContext g_RuntimeGlobalContext;
+RuntimeGlobalContext g_GlobalContext;
 
 void RuntimeGlobalContext::Init(RuntimeGlobalContextConfig config)
 {

@@ -4,17 +4,12 @@
 
 namespace Snowy::Ark
 {
-struct RHIConfig
-{
-    ERHIBackend backend;
-};
-
 class RHIManager
 {
 public:
-    static SharedHandle<RHI> CreateRHI(RHIConfig config)
+    static SharedHandle<RHI> CreateRHI(ERHIBackend backend)
     {
-        if (config.backend == ERHIBackend::Vulkan)
+        if (backend == ERHIBackend::Vulkan)
         {
             return MakeShared<VulkanRHI>();
         } else

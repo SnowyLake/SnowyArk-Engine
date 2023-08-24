@@ -4,15 +4,15 @@ namespace Snowy::Ark
 {
 void Engine::Init(EngineConfig config)
 {
-    g_RuntimeGlobalContext.Init(config.runtimeGlobalContext);
+    g_GlobalContext.Init(config.runtimeGlobalContext);
 }
 void Engine::Run()
 {
-    SharedHandle<RenderSystem> renderSys = g_RuntimeGlobalContext.renderSys;
+    SharedHandle<RenderSystem> renderSys = g_GlobalContext.renderSys;
     renderSys->Tick();
 }
 void Engine::Destroy()
 {
-    g_RuntimeGlobalContext.Destory();
+    g_GlobalContext.Destory();
 }
 }

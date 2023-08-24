@@ -21,6 +21,10 @@ enum class ERHIBackend
     // DirectX11,
     // DirectX12,
 };
+struct RHIConfig
+{
+    ERHIBackend backend;
+};
 
 class RHI
 {
@@ -28,7 +32,7 @@ public:
     RHI() = default;
     ~RHI() = default;
 
-    virtual void Init() = 0;
+    virtual void Init(RHIConfig config) = 0;
     virtual void Run() = 0;
     virtual void Destory() = 0;
 };

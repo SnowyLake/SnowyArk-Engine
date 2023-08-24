@@ -17,7 +17,7 @@ struct RuntimeGlobalContext
     SharedHandle<RenderSystem> renderSys;
 };
 
-extern RuntimeGlobalContext g_RuntimeGlobalContext;
+extern RuntimeGlobalContext g_GlobalContext;
 }
 
 

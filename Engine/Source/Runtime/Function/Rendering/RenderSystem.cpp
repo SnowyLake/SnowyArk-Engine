@@ -3,8 +3,8 @@ namespace Snowy::Ark
 {
 void RenderSystem::Init(RenderSystemConfig config)
 {
-    m_RHIContext = RHIManager::CreateRHI(config.rhi);
-    m_RHIContext->Init();
+    m_RHIContext = RHIManager::CreateRHI(config.rhi.backend);
+    m_RHIContext->Init(config.rhi);
 }
 void RenderSystem::Tick()
 {
