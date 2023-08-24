@@ -4,12 +4,17 @@
 
 namespace Snowy::Ark
 {
+struct RHIConfig
+{
+    ERHIBackend backend;
+};
+
 class RHIManager
 {
 public:
-    static SharedHandle<RHI> CreateRHI(ERHIBackend type)
+    static SharedHandle<RHI> CreateRHI(RHIConfig config)
     {
-        if (type == ERHIBackend::Vulkan)
+        if (config.backend == ERHIBackend::Vulkan)
         {
             return MakeShared<VulkanRHI>();
         } else
@@ -17,9 +22,9 @@ public:
             return nullptr;
         }
     }
-    static void DestroyRHI()
+    static void DestroyRHI(SharedHandle<RHI> rhi)
     {
-
+        rhi->Destory();
     }
 };
 }

@@ -37,6 +37,9 @@
     <Filter Include="Core\Math">
       <UniqueIdentifier>{a0150da2-139f-411e-b105-c6242f5f254a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Function\Window">
+      <UniqueIdentifier>{a34a0c04-b4a1-461a-bdd0-31e95b0a9dff}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\Common.h">
@@ -64,6 +67,15 @@
     <ClInclude Include="Platform\FileSystem.h">
       <Filter>Platform</Filter>
     </ClInclude>
+    <ClInclude Include="Function\Global\GlobalContext.h">
+      <Filter>Function\Global</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Rendering\RenderSystem.h">
+      <Filter>Function\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Window\WindowSystem.h">
+      <Filter>Function\Window</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
@@ -78,6 +90,15 @@
     </ClCompile>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanUtils.cpp">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Global\GlobalContext.cpp">
+      <Filter>Function\Global</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\RenderSystem.cpp">
+      <Filter>Function\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Window\WindowSystem.cpp">
+      <Filter>Function\Window</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

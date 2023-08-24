@@ -2,14 +2,17 @@
 
 namespace Snowy::Ark
 {
-void Engine::Init(ERHIBackend type)
+void Engine::Init(EngineConfig config)
 {
-    m_RHIContext = RHIManager::CreateRHI(type);
+    g_RuntimeGlobalContext.Init(config.runtimeGlobalContext);
 }
 void Engine::Run()
 {
-    m_RHIContext->Run();
+    SharedHandle<RenderSystem> renderSys = g_RuntimeGlobalContext.renderSys;
+    renderSys->Tick();
 }
 void Engine::Destroy()
-{}
+{
+    g_RuntimeGlobalContext.Destory();
+}
 }

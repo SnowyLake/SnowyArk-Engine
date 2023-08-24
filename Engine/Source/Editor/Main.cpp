@@ -9,7 +9,19 @@ int main()
     try
     {
         Ark::Engine* engine = new Ark::Engine();
-        engine->Init(Ark::ERHIBackend::Vulkan);
+        Ark::EngineConfig engineConfig = {
+            .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
+            {
+                .renderSys = Ark::RenderSystemConfig
+                {
+                    .rhi = Ark::RHIConfig
+                    {
+                        .backend = Ark::ERHIBackend::Vulkan,
+                    },
+                },
+            },
+        };
+        engine->Init(engineConfig);
 
         Ark::Editor* editor = new Ark::Editor();
         editor->Init(engine);

@@ -19,19 +19,15 @@ void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessenge
     instance.destroyDebugUtilsMessengerEXT(*pCallback, allocator);
 }
 
-VulkanRHI::VulkanRHI()
+void VulkanRHI::Init()
 {
     InitWindow();
     InitVulkan();
 }
 
-VulkanRHI::~VulkanRHI()
-{}
-
 void VulkanRHI::Run()
 {
     MainLoop();
-    Cleanup();
 }
 
 void VulkanRHI::InitWindow()
@@ -86,7 +82,7 @@ void VulkanRHI::MainLoop()
     Utils::VerifyResult(m_Device.waitIdle(), STEXT("Failed to Wait Idle!"));
 }
 
-void VulkanRHI::Cleanup()
+void VulkanRHI::Destory()
 {
     LOG("Vulkan Destory, Start.");
 

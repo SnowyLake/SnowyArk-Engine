@@ -83,7 +83,7 @@ struct QueueFamilyIndices
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
 
-    bool IsComplete() 
+    bool IsComplete()
     {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
@@ -99,10 +99,11 @@ class VulkanRHI final : public RHI
 {
     using Utils = VulkanUtils;
 public:
-    VulkanRHI();
-    ~VulkanRHI();
+    VulkanRHI() = default;
+    ~VulkanRHI() = default;
+    void Init() override;
     void Run() override;
-    void Cleanup() override;
+    void Destory() override;
 
 private:
     GLFWwindow* m_Window;
