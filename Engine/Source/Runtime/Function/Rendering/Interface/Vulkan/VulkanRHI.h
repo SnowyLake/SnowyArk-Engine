@@ -60,8 +60,6 @@ static std::vector<Vertex> g_TriangleVertices = {
 };
 static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
-constexpr int WIDTH = 800;
-constexpr int HEIGHT = 600;
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 #ifdef NDEBUG
@@ -106,7 +104,7 @@ public:
     void Destory() override;
 
 private:
-    GLFWwindow* m_Window;
+    RawHandle<GLFWwindow> m_WindowHandle;
     vk::Instance m_Instance;
     vk::DebugUtilsMessengerEXT m_Callback;
 
@@ -141,7 +139,6 @@ private:
     std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
     std::vector<vk::Fence> m_InFlightFences;
     size_t m_CurrentFrame = 0;
-    bool m_FramebufferResized = false;
 
     vk::Buffer m_VertexBuffer, m_IndexBuffer;
     vk::DeviceMemory m_VertexBufferMemory, m_IndexBufferMemory;
@@ -155,9 +152,7 @@ public:
     vk::CommandPool& CommandPool() { return m_CommandPool; }
 
 private:
-    void InitWindow();
     void InitVulkan();
-    void MainLoop();
 
     // ==============================================
     // Feature Functions
@@ -185,12 +180,6 @@ private:
     void CleanupSwapChain();
     void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);
     void DrawFrame();
-
-    static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
-    {
-        auto rhi = reinterpret_cast<VulkanRHI*>(glfwGetWindowUserPointer(window));
-        rhi->m_FramebufferResized = true;
-    }
 
 // ==============================================
 // Tool Functions, TODO: Utils

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
+#include "Engine/Source/Runtime/Function/Global/GlobalContextConfig.h"
 
 #if defined(SNOWY_ARK_RHI_VULKAN)
 #define RHI_TRUE            VK_TRUE
@@ -13,19 +14,6 @@
 
 namespace Snowy::Ark
 {
-enum class ERHIBackend
-{
-    None,
-    // OpenGL,
-    Vulkan,
-    // DirectX11,
-    // DirectX12,
-};
-struct RHIConfig
-{
-    ERHIBackend backend;
-};
-
 class RHI
 {
 public:

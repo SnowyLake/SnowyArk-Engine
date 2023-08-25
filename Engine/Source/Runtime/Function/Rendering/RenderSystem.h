@@ -1,20 +1,18 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
+#include "Engine/Source/Runtime/Function/Global/GlobalContextConfig.h"
+
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHIManager.h"
 
 namespace Snowy::Ark
 {
-struct RenderSystemConfig
-{
-    RHIConfig rhi;
-};
-
+class RHI;
 class RenderSystem
 {
 public:
     RenderSystem() = default;
 
-    void Init(RenderSystemConfig config);
+    void Init(RenderSystemConfig config, ObserverHandle<GLFWwindow> windowHandle);
     void Tick();
     void Destory();
 

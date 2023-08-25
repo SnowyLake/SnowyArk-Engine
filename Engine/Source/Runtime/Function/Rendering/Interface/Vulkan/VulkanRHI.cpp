@@ -1,4 +1,6 @@
 ﻿#include "VulkanRHI.h"
+#include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
+#include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
 #include "Engine/Source/Runtime/Platform/FileSystem.h"
 
 #include <set>
@@ -21,26 +23,15 @@ void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessenge
 
 void VulkanRHI::Init(RHIConfig config)
 {
-    InitWindow();
+    m_WindowHandle = config.windowHandle;
     InitVulkan();
 }
 
 void VulkanRHI::Run()
 {
-    MainLoop();
+    DrawFrame();
 }
 
-void VulkanRHI::InitWindow()
-{
-    LOG("Window Initialize, Start.");
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    m_Window = glfwCreateWindow(WIDTH, HEIGHT, "Hello Vulkan Triangle!", nullptr, nullptr);
-    glfwSetWindowUserPointer(m_Window, this);
-    glfwSetFramebufferSizeCallback(m_Window, FramebufferResizeCallback);
-    LOG("Window Initialize, Complete.");
-}
 void VulkanRHI::InitVulkan()
 {
     LOG("Vulkan Initialize, Start.");
@@ -72,18 +63,10 @@ void VulkanRHI::InitVulkan()
     LOG("Vulkan Initialize, Complete.");
 }
 
-void VulkanRHI::MainLoop()
-{
-    while (!glfwWindowShouldClose(m_Window))
-    {
-        glfwPollEvents();
-        DrawFrame();
-    }
-    Utils::VerifyResult(m_Device.waitIdle(), STEXT("Failed to Wait Idle!"));
-}
-
 void VulkanRHI::Destory()
 {
+    Utils::VerifyResult(m_Device.waitIdle(), STEXT("Failed to Wait Idle!"));
+
     LOG("Vulkan Destory, Start.");
 
     CleanupSwapChain();
@@ -119,9 +102,6 @@ void VulkanRHI::Destory()
     m_Instance.destroy();
 
     LOG("Vulkan Destory, Complete.");
-
-    glfwDestroyWindow(m_Window);
-    glfwTerminate();
 }
 void VulkanRHI::CreateInstance()
 {
@@ -183,7 +163,7 @@ void VulkanRHI::SetupDebugCallback()
 void VulkanRHI::CreateSurface()
 {
     LOG("Create Surface, Start.");
-    if (glfwCreateWindowSurface(m_Instance, m_Window, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(m_Instance, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to create window surface!");
     }
@@ -733,12 +713,12 @@ void VulkanRHI::CreateSyncObjects()
 
 void VulkanRHI::ReCreateSwapChain()
 {
-    int width = 0, height = 0;
-    glfwGetFramebufferSize(m_Window, &width, &height);
+    SharedHandle windowSys = g_GlobalContext.windowSys;
+    auto [width, height] = windowSys->GetFramebufferSize();
     while (width == 0 || height == 0)
     {
-        glfwGetFramebufferSize(m_Window, &width, &height);
-        glfwWaitEvents();
+        std::tie(width, height) = windowSys->GetFramebufferSize();
+        windowSys->WaitEvents();
     }
 
     m_Device.waitIdle();
@@ -863,9 +843,10 @@ void VulkanRHI::DrawFrame()
 
     Utils::VerifyResult(m_PresentQueue.presentKHR(presentInfo),
                         [this](auto result) {
-                            if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || m_FramebufferResized)
+                            SharedHandle windowSys = g_GlobalContext.windowSys;
+                            if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || windowSys->IsFramebufferResized())
                             {
-                                m_FramebufferResized = false;
+                                windowSys->SetFramebufferResizedToDefault();
                                 ReCreateSwapChain();
                             } else if (result != vk::Result::eSuccess)
                             {
@@ -1035,7 +1016,7 @@ vk::Extent2D VulkanRHI::ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabili
     } else
     {
         int actualWidth, actualHeight;
-        glfwGetFramebufferSize(m_Window, &actualWidth, &actualHeight);
+        glfwGetFramebufferSize(m_WindowHandle, &actualWidth, &actualHeight);
         vk::Extent2D actualExtent = { static_cast<uint32_t>(actualWidth), static_cast<uint32_t>(actualHeight) };
         actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
         actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));

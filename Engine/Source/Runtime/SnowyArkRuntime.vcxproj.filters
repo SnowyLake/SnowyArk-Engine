@@ -76,6 +76,12 @@
     <ClInclude Include="Function\Window\WindowSystem.h">
       <Filter>Function\Window</Filter>
     </ClInclude>
+    <ClInclude Include="Function\Global\GlobalContextConfig.h">
+      <Filter>Function\Global</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Global\GlobalTypedef.h">
+      <Filter>Function\Global</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">

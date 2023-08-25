@@ -5,13 +5,13 @@ void Editor::Init(Engine* engine)
 {
     m_Engine = engine;
 }
-
 void Editor::Run()
 {
     m_Engine->Run();
 }
 void Editor::Destroy()
 {
+
 }
 }
 

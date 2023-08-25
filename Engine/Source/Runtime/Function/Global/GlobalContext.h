@@ -1,13 +1,11 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
-#include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
-#include "Engine/Source/Runtime/Function/Rendering/RenderSystem.h"
+#include "Engine/Source/Runtime/Function/Global/GlobalContextConfig.h"
 namespace Snowy::Ark
 {
-struct RuntimeGlobalContextConfig
-{
-    RenderSystemConfig renderSys;
-};
+class WindowSystem;
+class RenderSystem;
+
 struct RuntimeGlobalContext
 {
     void Init(RuntimeGlobalContextConfig config);
@@ -19,5 +17,3 @@ struct RuntimeGlobalContext
 
 extern RuntimeGlobalContext g_GlobalContext;
 }
-
-

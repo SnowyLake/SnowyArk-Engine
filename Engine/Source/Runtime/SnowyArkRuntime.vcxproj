@@ -159,6 +159,8 @@
     <ClInclude Include="Core\Base\Macro.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Global\GlobalContext.h" />
+    <ClInclude Include="Function\Global\GlobalContextConfig.h" />
+    <ClInclude Include="Function\Global\GlobalTypedef.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
     <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanUtils.h" />

@@ -12,6 +12,13 @@ int main()
         Ark::EngineConfig engineConfig = {
             .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
             {
+                .windowSys = Ark::WindowSystemConfig
+                {
+                    .width = 800,
+                    .height = 600,
+                    .title = "SnowyArk",
+                    .isFullscreen = false,
+                },
                 .renderSys = Ark::RenderSystemConfig
                 {
                     .rhi = Ark::RHIConfig
