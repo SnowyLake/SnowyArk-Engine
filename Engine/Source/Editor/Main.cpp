@@ -1,46 +1,43 @@
 ﻿#include "Engine/Source/Editor/Include/Editor.h"
 
-#pragma comment(lib, "glfw3.lib")
 #pragma comment(lib, "SnowyArkRuntime.lib")
+#pragma comment(lib, "glfw3.lib")
+#pragma comment(lib, "spdlog.lib")
 
 int main()
 {
     namespace Ark = Snowy::Ark;
-    try
-    {
-        Ark::Engine* engine = new Ark::Engine();
-        Ark::EngineConfig engineConfig = {
-            .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
+
+    Ark::Engine* engine = new Ark::Engine();
+    Ark::EngineConfig engineConfig = {
+        .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
+        {
+            .windowSys = Ark::WindowSystemConfig
             {
-                .windowSys = Ark::WindowSystemConfig
+                .width = 800,
+                .height = 600,
+                .title = STEXT("SnowyArk"),
+                .isFullscreen = false,
+            },
+            .renderSys = Ark::RenderSystemConfig
+            {
+                .rhi = Ark::RHIConfig
                 {
-                    .width = 800,
-                    .height = 600,
-                    .title = "SnowyArk",
-                    .isFullscreen = false,
-                },
-                .renderSys = Ark::RenderSystemConfig
-                {
-                    .rhi = Ark::RHIConfig
-                    {
-                        .backend = Ark::ERHIBackend::Vulkan,
-                    },
+                    .backend = Ark::ERHIBackend::Vulkan,
+                    .maxFrameInFlight = 2,
+                    .vkValidationLayers = { "VK_LAYER_KHRONOS_validation" },
+                    .vkDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME },
                 },
             },
-        };
-        engine->Init(engineConfig);
+        },
+    };
+    engine->Init(engineConfig);
 
-        Ark::Editor* editor = new Ark::Editor();
-        editor->Init(engine);
+    Ark::Editor* editor = new Ark::Editor();
+    editor->Init(engine);
 
-        editor->Run();
+    editor->Run();
 
-        editor->Destroy();
-        engine->Destroy();
-    } catch (const std::exception& e)
-    {
-        std::cerr << e.what() << std::endl;
-        return EXIT_FAILURE;
-    }
-    return EXIT_SUCCESS;
+    editor->Destroy();
+    engine->Destroy();
 }

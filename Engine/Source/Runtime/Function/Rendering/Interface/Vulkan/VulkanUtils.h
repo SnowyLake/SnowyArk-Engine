@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
+#include "Engine/Source/Runtime/Core/Log/Logger.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 
 #include <vulkan/vulkan.hpp>
@@ -23,19 +24,19 @@ public:
     /*----------------------------------------------------------*/
     // Vulkan Result Process Function
     /*----------------------------------------------------------*/
-    static void VerifyResult(vk::Result result, SStringIn errorMsg, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(vk::Result result, AnsiStringIn errorMsg, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result != targetResult)
         {
-            throw std::runtime_error(SSTR_TO_ANSI(errorMsg));
+            LOG_ERROR(errorMsg);
         }
     }
     template<typename T>
-    static void VerifyResult(In<vk::ResultValue<T>> result, SStringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
+    static void VerifyResult(In<vk::ResultValue<T>> result, AnsiStringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
         if (result.result != targetResult)
         {
-            throw std::runtime_error(SSTR_TO_ANSI(errorMsg));
+            LOG_ERROR(errorMsg);
         } else
         {
             if (output)

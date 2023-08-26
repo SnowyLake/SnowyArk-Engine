@@ -1,4 +1,5 @@
 ﻿#include "VulkanRHI.h"
+#include "Engine/Source/Runtime/Core/Log/Logger.h"
 #include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
 #include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
 #include "Engine/Source/Runtime/Platform/FileSystem.h"
@@ -14,7 +15,7 @@ using Utils = VulkanUtils;
 void CreateDebugUtilsMessengerEXT(vk::Instance instance, const vk::DebugUtilsMessengerCreateInfoEXT& createInfo, vk::Optional<const vk::AllocationCallbacks> allocator,
                                   vk::DebugUtilsMessengerEXT* pCallback)
 {
-    Utils::VerifyResult(instance.createDebugUtilsMessengerEXT(createInfo, allocator), STEXT("Failed to set up debug callback!"), pCallback);
+    Utils::VerifyResult(instance.createDebugUtilsMessengerEXT(createInfo, allocator), "Failed to set up debug callback!", pCallback);
 }
 void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessengerEXT* pCallback, vk::Optional<const vk::AllocationCallbacks> allocator = nullptr)
 {
@@ -24,6 +25,9 @@ void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessenge
 void VulkanRHI::Init(RHIConfig config)
 {
     m_WindowHandle = config.windowHandle;
+    m_MaxFrameInFlight = config.maxFrameInFlight;
+    m_ValidationLayers = config.vkValidationLayers;
+    m_DeviceExtensions = config.vkDeviceExtensions;
     InitVulkan();
 }
 
@@ -34,7 +38,7 @@ void VulkanRHI::Run()
 
 void VulkanRHI::InitVulkan()
 {
-    LOG("Vulkan Initialize, Start.");
+    LOG_INFO("Vulkan Initialize, Start.");
 
     CreateInstance();
     SetupDebugCallback();
@@ -60,14 +64,14 @@ void VulkanRHI::InitVulkan()
     CreateCommandBuffers();
 
     CreateSyncObjects();
-    LOG("Vulkan Initialize, Complete.");
+    LOG_INFO("Vulkan Initialize, Complete.");
 }
 
 void VulkanRHI::Destory()
 {
-    Utils::VerifyResult(m_Device.waitIdle(), STEXT("Failed to Wait Idle!"));
+    Utils::VerifyResult(m_Device.waitIdle(), "Failed to Wait Idle!");
 
-    LOG("Vulkan Destory, Start.");
+    LOG_INFO("Vulkan Destory, Start.");
 
     CleanupSwapChain();
 
@@ -84,7 +88,7 @@ void VulkanRHI::Destory()
         m_Device.freeMemory(m_UniformBuffersMemory[i]);
     }
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < m_MaxFrameInFlight; i++)
     {
         m_Device.destroySemaphore(m_ImageAvailableSemaphores[i]);
         m_Device.destroySemaphore(m_RenderFinishedSemaphores[i]);
@@ -101,11 +105,11 @@ void VulkanRHI::Destory()
     m_Instance.destroySurfaceKHR(m_Surface);
     m_Instance.destroy();
 
-    LOG("Vulkan Destory, Complete.");
+    LOG_INFO("Vulkan Destory, Complete.");
 }
 void VulkanRHI::CreateInstance()
 {
-    LOG("Create Vulakn Instance, Start.");
+    LOG_INFO("Create Vulakn Instance, Start.");
 
     vk::DynamicLoader loader;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
@@ -113,7 +117,7 @@ void VulkanRHI::CreateInstance()
 
     if (g_EnableValidationLayers && !CheckValidationLayerSupport())
     {
-        throw std::runtime_error("Vaildation layers requested, but not available!");
+        LOG_ERROR("Vaildation layers requested, but not available!");
     }
 
     vk::ApplicationInfo appInfo = {
@@ -132,20 +136,20 @@ void VulkanRHI::CreateInstance()
     createInfo.setPEnabledExtensionNames(extensions);
     if (g_EnableValidationLayers)
     {
-        createInfo.setPEnabledLayerNames(g_ValidationLayers);
+        createInfo.setPEnabledLayerNames(m_ValidationLayers);
     } else
     {
         createInfo.setPEnabledLayerNames(nullptr);
     }
 
-    Utils::VerifyResult(vk::createInstance(createInfo, nullptr), STEXT("Failed to Create Vk Instance!"), &m_Instance);
+    Utils::VerifyResult(vk::createInstance(createInfo, nullptr), "Failed to Create Vk Instance!", &m_Instance);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Instance);
-    LOG("Create Vulakn Instance, Complete.");
+    LOG_INFO("Create Vulakn Instance, Complete.");
 }
 void VulkanRHI::SetupDebugCallback()
 {
-    LOG("Setup Debug Callback, Start.");
+    LOG_INFO("Setup Debug Callback, Start.");
     if (!g_EnableValidationLayers)
     {
         return;
@@ -158,26 +162,26 @@ void VulkanRHI::SetupDebugCallback()
     };
 
     CreateDebugUtilsMessengerEXT(m_Instance, createInfo, nullptr, &m_Callback);
-    LOG("Setup Debug Callback, Complete.")
+    LOG_INFO("Setup Debug Callback, Complete.")
 }
 void VulkanRHI::CreateSurface()
 {
-    LOG("Create Surface, Start.");
+    LOG_INFO("Create Surface, Start.");
     if (glfwCreateWindowSurface(m_Instance, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to create window surface!");
+        LOG_ERROR("Failed to create window surface!");
     }
-    LOG("Create Surface, Complete.")
+    LOG_INFO("Create Surface, Complete.")
 }
 void VulkanRHI::PickPhysicalDevice()
 {
-    LOG("Pick Physical Device, Start.");
+    LOG_INFO("Pick Physical Device, Start.");
     Utils::VerifyResult(m_Instance.enumeratePhysicalDevices(),
                         [this](const auto& result) {
                             auto& [r, v] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                throw std::runtime_error("Faild to find GPUs with Vulkan support!");
+                                LOG_ERROR("Faild to find GPUs with Vulkan support!");
                             } else
                             {
                                 for (const auto& device : v)
@@ -190,15 +194,15 @@ void VulkanRHI::PickPhysicalDevice()
                                 }
                                 if (!m_PhysicalDevice)
                                 {
-                                    throw std::runtime_error("Failed to find a suitable GPU!");
+                                    LOG_ERROR("Failed to find a suitable GPU!");
                                 }
                             }
                         });
-    LOG("Pick Physical Device, Complete.");
+    LOG_INFO("Pick Physical Device, Complete.");
 }
 void VulkanRHI::CreateLogicalDevice()
 {
-    LOG("Create Logical Device, Start.");
+    LOG_INFO("Create Logical Device, Start.");
     QueueFamilyIndices indices = FindQueueFamilies(m_PhysicalDevice);
 
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -223,31 +227,31 @@ void VulkanRHI::CreateLogicalDevice()
     vk::DeviceCreateInfo createInfo = {
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
-        .enabledExtensionCount = static_cast<uint32_t>(g_DeviceExtensions.size()),
-        .ppEnabledExtensionNames = g_DeviceExtensions.data(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size()),
+        .ppEnabledExtensionNames = m_DeviceExtensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
     if (g_EnableValidationLayers)
     {
-        createInfo.setPEnabledLayerNames(g_ValidationLayers);
+        createInfo.setPEnabledLayerNames(m_ValidationLayers);
     } else
     {
         createInfo.setPEnabledLayerNames(nullptr);
     }
 
-    Utils::VerifyResult(m_PhysicalDevice.createDevice(createInfo, nullptr), STEXT("Failed to create logical device!"), &m_Device);
+    Utils::VerifyResult(m_PhysicalDevice.createDevice(createInfo, nullptr), "Failed to create LOG_INFOical device!", &m_Device);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Device);
 
     m_GraphicsQueue = m_Device.getQueue(indices.graphicsFamily.value(), 0);
     m_PresentQueue = m_Device.getQueue(indices.presentFamily.value(), 0);
 
-    LOG("Create Logical Device, Complete.");
+    LOG_INFO("Create Logical Device, Complete.");
 }
 
 void VulkanRHI::CreateSwapChain()
 {
-    LOG("Create SwapChain, Start.");
+    LOG_INFO("Create SwapChain, Start.");
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(m_PhysicalDevice);
     vk::SurfaceFormatKHR surfaceFormat = ChooseSwapChainFormat(swapChainSupport.formats);
     vk::PresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
@@ -287,17 +291,17 @@ void VulkanRHI::CreateSwapChain()
         .setClipped(RHI_TRUE)
         .setOldSwapchain(RHI_NULL_HANDLE);
 
-    Utils::VerifyResult(m_Device.createSwapchainKHR(createInfo, nullptr), STEXT("Failed to create swap chain!"), &m_SwapChain);
-    Utils::VerifyResult(m_Device.getSwapchainImagesKHR(m_SwapChain), STEXT("Failed to get swap chain images!"), &m_SwapChainImages);
+    Utils::VerifyResult(m_Device.createSwapchainKHR(createInfo, nullptr), "Failed to create swap chain!", &m_SwapChain);
+    Utils::VerifyResult(m_Device.getSwapchainImagesKHR(m_SwapChain), "Failed to get swap chain images!", &m_SwapChainImages);
 
     m_SwapChainImageFormat = surfaceFormat.format;
     m_SwapChainExtent = extent;
 
-    LOG("Create SwapChain, Complete.");
+    LOG_INFO("Create SwapChain, Complete.");
 }
 void VulkanRHI::CreateImageViews()
 {
-    LOG("Create Image Views, Start.");
+    LOG_INFO("Create Image Views, Start.");
     m_SwapChainImageViews.resize(m_SwapChainImages.size());
     for (size_t i = 0; i < m_SwapChainImages.size(); i++)
     {
@@ -315,9 +319,9 @@ void VulkanRHI::CreateImageViews()
             },
         };
         Utils::VerifyResult(m_Device.createImageView(createInfo, nullptr),
-                            ANSI_TO_SSTR(std::format("Failed to create ImageView[{}]!", i)), &m_SwapChainImageViews[i]);
+                            std::format("Failed to create ImageView[{}]!", i), &m_SwapChainImageViews[i]);
     }
-    LOG("Create Image Views, Complete.");
+    LOG_INFO("Create Image Views, Complete.");
 }
 
 void VulkanRHI::CreateDescriptorSetLayout()
@@ -333,12 +337,12 @@ void VulkanRHI::CreateDescriptorSetLayout()
         .bindingCount = 1,
         .pBindings = &descLayoutBinding,
     };
-    Utils::VerifyResult(m_Device.createDescriptorSetLayout(createInfo), STEXT("Failed to create descriptor set layout!"), &m_DescriptorSetLayout);
+    Utils::VerifyResult(m_Device.createDescriptorSetLayout(createInfo), "Failed to create descriptor set layout!", &m_DescriptorSetLayout);
 }
 
 void VulkanRHI::CreateGraphicsPipeline()
 {
-    LOG("Create Graphics Pipeline, Start.");
+    LOG_INFO("Create Graphics Pipeline, Start.");
 
     auto&& fs = FileSystem::GetInstance();
     auto vertShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv"));
@@ -449,7 +453,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .pPushConstantRanges = nullptr,
     };
 
-    Utils::VerifyResult(m_Device.createPipelineLayout(pipelineLayoutInfo), STEXT("Failed to create pipeline layout!"), &m_PipelineLayout);
+    Utils::VerifyResult(m_Device.createPipelineLayout(pipelineLayoutInfo), "Failed to create pipeline layout!", &m_PipelineLayout);
 
     vk::GraphicsPipelineCreateInfo graphicsPipelineInfo = {
         .stageCount = static_cast<uint32_t>(shaderStages.size()),
@@ -470,15 +474,15 @@ void VulkanRHI::CreateGraphicsPipeline()
     };
 
     Utils::VerifyResult(m_Device.createGraphicsPipeline(RHI_NULL_HANDLE, graphicsPipelineInfo),
-                        STEXT("Failed to create graphics pipeline!"), &m_GraphicsPipeline);
+                        "Failed to create graphics pipeline!", &m_GraphicsPipeline);
 
     m_Device.destroyShaderModule(vertShaderModule);
     m_Device.destroyShaderModule(fragShaderModule);
-    LOG("Create Graphics Pipeline, Complete.");
+    LOG_INFO("Create Graphics Pipeline, Complete.");
 }
 void VulkanRHI::CreateRenderPass()
 {
-    LOG("Create Render Pass, Start.");
+    LOG_INFO("Create Render Pass, Start.");
 
     vk::AttachmentDescription colorAttachmentDesc = {
         .flags = vk::AttachmentDescriptionFlags{},
@@ -521,12 +525,12 @@ void VulkanRHI::CreateRenderPass()
         .pDependencies = &subpassDependency,
     };
 
-    Utils::VerifyResult(m_Device.createRenderPass(renderPassInfo, nullptr), STEXT("Failed to create render pass!"), &m_RenderPass);
-    LOG("Create Render Pass, Complete.")
+    Utils::VerifyResult(m_Device.createRenderPass(renderPassInfo, nullptr), "Failed to create render pass!", &m_RenderPass);
+    LOG_INFO("Create Render Pass, Complete.")
 }
 void VulkanRHI::CreateFramebuffers()
 {
-    LOG("Create Framebuffers, Start.")
+    LOG_INFO("Create Framebuffers, Start.")
         m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
     for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
     {
@@ -542,13 +546,13 @@ void VulkanRHI::CreateFramebuffers()
         };
 
         Utils::VerifyResult(m_Device.createFramebuffer(framebufferInfo, nullptr),
-                            ANSI_TO_SSTR(std::format("Failed to create framebuffer[{}]!", i)), &m_SwapChainFramebuffers[i]);
+                            std::format("Failed to create framebuffer[{}]!", i), &m_SwapChainFramebuffers[i]);
     }
-    LOG("Create Framebuffers, Complete.")
+    LOG_INFO("Create Framebuffers, Complete.")
 }
 void VulkanRHI::CreateCommandPool()
 {
-    LOG("Create Command Pool, Start.")
+    LOG_INFO("Create Command Pool, Start.")
         auto queueFamilyIndices = FindQueueFamilies(m_PhysicalDevice);
 
     vk::CommandPoolCreateInfo createInfo = {
@@ -556,12 +560,12 @@ void VulkanRHI::CreateCommandPool()
         .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
     };
 
-    Utils::VerifyResult(m_Device.createCommandPool(createInfo, nullptr), STEXT("Failed to create command pool!"), &m_CommandPool);
-    LOG("Create Command Pool, Complete.")
+    Utils::VerifyResult(m_Device.createCommandPool(createInfo, nullptr), "Failed to create command pool!", &m_CommandPool);
+    LOG_INFO("Create Command Pool, Complete.")
 }
 void VulkanRHI::CreateCommandBuffers()
 {
-    LOG("Create Command Buffers, Start.")
+    LOG_INFO("Create Command Buffers, Start.")
         m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {
@@ -569,8 +573,8 @@ void VulkanRHI::CreateCommandBuffers()
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size()),
     };
-    Utils::VerifyResult(m_Device.allocateCommandBuffers(allocInfo), STEXT("Failed to allocate command buffers!"), &m_CommandBuffers);
-    LOG("Create Command Buffers, Complete.")
+    Utils::VerifyResult(m_Device.allocateCommandBuffers(allocInfo), "Failed to allocate command buffers!", &m_CommandBuffers);
+    LOG_INFO("Create Command Buffers, Complete.")
 }
 
 void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
@@ -585,7 +589,7 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
                  &stagingBuffer, &stagingBufferMemory);
 
     void* data;
-    Utils::VerifyResult(m_Device.mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
+    Utils::VerifyResult(m_Device.mapMemory(stagingBufferMemory, 0, bufferSize, {}), "Failed to map vertex buffer memory!", &data);
     memcpy(data, triangleVertices.data(), (size_t)bufferSize);
     m_Device.unmapMemory(stagingBufferMemory);
 
@@ -610,7 +614,7 @@ void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
                  &stagingBuffer, &stagingBufferMemory);
 
     void* data;
-    Utils::VerifyResult(m_Device.mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device.mapMemory(stagingBufferMemory, 0, bufferSize, {}), "Failed to map index buffer memory!", &data);
     memcpy(data, triangleIndices.data(), (size_t)bufferSize);
     m_Device.unmapMemory(stagingBufferMemory);
 
@@ -649,12 +653,12 @@ void VulkanRHI::CreateDescriptorPool()
         .poolSizeCount = 1,
         .pPoolSizes = &poolSize,
     };
-    Utils::VerifyResult(m_Device.createDescriptorPool(poolInfo), STEXT("Failed to create descriptor pool!"), &m_DescriptorPool);
+    Utils::VerifyResult(m_Device.createDescriptorPool(poolInfo), "Failed to create descriptor pool!", &m_DescriptorPool);
 }
 
 void VulkanRHI::CreateDescriptorSets()
 {
-    LOG("Create Descriptor Sets, Start.")
+    LOG_INFO("Create Descriptor Sets, Start.")
         std::vector<vk::DescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo = {
         .descriptorPool = m_DescriptorPool,
@@ -662,7 +666,7 @@ void VulkanRHI::CreateDescriptorSets()
         .pSetLayouts = layouts.data(),
     };
     m_DescriptorSets.resize(m_SwapChainImages.size());
-    Utils::VerifyResult(m_Device.allocateDescriptorSets(allocInfo), STEXT("Failed to alloc descriptor set!"), &m_DescriptorSets);
+    Utils::VerifyResult(m_Device.allocateDescriptorSets(allocInfo), "Failed to alloc descriptor set!", &m_DescriptorSets);
     for (size_t i = 0; i < m_SwapChainImages.size(); i++)
     {
         vk::DescriptorBufferInfo bufferInfo = {
@@ -682,33 +686,33 @@ void VulkanRHI::CreateDescriptorSets()
         };
         m_Device.updateDescriptorSets(descriptorWrite, nullptr);
     }
-    LOG("Create Descriptor Sets, Complete.")
+    LOG_INFO("Create Descriptor Sets, Complete.")
 }
 
 void VulkanRHI::CreateSyncObjects()
 {
-    LOG("Create Semaphores, Start.")
-        m_ImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    m_RenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    m_InFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    LOG_INFO("Create Semaphores, Start.")
+        m_ImageAvailableSemaphores.resize(m_MaxFrameInFlight);
+    m_RenderFinishedSemaphores.resize(m_MaxFrameInFlight);
+    m_InFlightFences.resize(m_MaxFrameInFlight);
 
     vk::SemaphoreCreateInfo semaphoreInfo = {};
     vk::FenceCreateInfo fenceInfo = {
         .flags = vk::FenceCreateFlagBits::eSignaled,
     };
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < m_MaxFrameInFlight; i++)
     {
         Utils::VerifyResult(m_Device.createSemaphore(semaphoreInfo, nullptr),
-                            STEXT("Failed to create synchronization objects for a frame!"), &m_ImageAvailableSemaphores[i]);
+                            "Failed to create synchronization objects for a frame!", &m_ImageAvailableSemaphores[i]);
 
         Utils::VerifyResult(m_Device.createSemaphore(semaphoreInfo, nullptr),
-                            STEXT("Failed to create synchronization objects for a frame!"), &m_RenderFinishedSemaphores[i]);
+                            "Failed to create synchronization objects for a frame!", &m_RenderFinishedSemaphores[i]);
 
         Utils::VerifyResult(m_Device.createFence(fenceInfo, nullptr),
-                            STEXT("Failed to create synchronization objects for a frame!"), &m_InFlightFences[i]);
+                            "Failed to create synchronization objects for a frame!", &m_InFlightFences[i]);
     }
-    LOG("Create Semaphores, Complete.");
+    LOG_INFO("Create Semaphores, Complete.");
 }
 
 void VulkanRHI::ReCreateSwapChain()
@@ -761,7 +765,7 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& cmds, uint32
                         [&, this](auto result) {
                             if (result != vk::Result::eSuccess)
                             {
-                                throw std::runtime_error("Failed to begin recording command buffer!");
+                                LOG_ERROR("Failed to begin recording command buffer!");
                             } else
                             {
                                 std::array<vk::ClearValue, 1> clearValues = {
@@ -791,7 +795,7 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& cmds, uint32
                                 cmds[idx].drawIndexed(static_cast<uint32_t>(g_TriangleIndices.size()), 1, 0, 0, 0);
                                 cmds[idx].endRenderPass();
 
-                                Utils::VerifyResult(cmds[idx].end(), STEXT("Failed to end recording command buffer!"));
+                                Utils::VerifyResult(cmds[idx].end(), "Failed to end recording command buffer!");
                             }
                         });
 }
@@ -809,7 +813,7 @@ void VulkanRHI::DrawFrame()
                                 return;
                             } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
                             {
-                                throw std::runtime_error("Failed to acquire swap chain image!");
+                                LOG_ERROR("Failed to acquire swap chain image!");
                             }
                         });
 
@@ -831,7 +835,7 @@ void VulkanRHI::DrawFrame()
         .pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame],
     };
 
-    Utils::VerifyResult(m_GraphicsQueue.submit(submitInfo, m_InFlightFences[m_CurrentFrame]), STEXT("Failed to submit draw command buffer!"));
+    Utils::VerifyResult(m_GraphicsQueue.submit(submitInfo, m_InFlightFences[m_CurrentFrame]), "Failed to submit draw command buffer!");
 
     vk::PresentInfoKHR presentInfo = {
         .waitSemaphoreCount = 1,
@@ -850,12 +854,12 @@ void VulkanRHI::DrawFrame()
                                 ReCreateSwapChain();
                             } else if (result != vk::Result::eSuccess)
                             {
-                                throw std::runtime_error("Failed to present swap chain image!");
+                                LOG_ERROR("Failed to present swap chain image!");
                             }
                         });
 
     //vkQueueWaitIdle(m_PresentQueue);
-    m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFrameInFlight;
 }
 
 // ==============================================
@@ -863,17 +867,17 @@ void VulkanRHI::DrawFrame()
 // ==============================================
 bool VulkanRHI::CheckValidationLayerSupport()
 {
-    LOG("Check Validation Layer Support, Start.");
+    LOG_INFO("Check Validation Layer Support, Start.");
     bool support = true;
     Utils::VerifyResult(vk::enumerateInstanceLayerProperties(),
                         [&, this](const auto& result) {
                             auto& [r, v] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                throw std::runtime_error("Failed to enumerate instance layer properties!");
+                                LOG_ERROR("Failed to enumerate instance layer properties!");
                             } else
                             {
-                                for (const char* layerName : g_ValidationLayers)
+                                for (const char* layerName : m_ValidationLayers)
                                 {
                                     bool layerFound = false;
                                     for (const auto& layerProperies : v)
@@ -891,19 +895,19 @@ bool VulkanRHI::CheckValidationLayerSupport()
                                 }
                             }
                         });
-    LOG("Check Validation Layer Support, Complete.");
+    LOG_INFO("Check Validation Layer Support, Complete.");
     return support;
 }
 bool VulkanRHI::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
 {
-    LOG("Check Device Extension Support, Start.");
-    std::set<std::string> requiredExtensions(g_DeviceExtensions.begin(), g_DeviceExtensions.end());
+    LOG_INFO("Check Device Extension Support, Start.");
+    std::set<std::string> requiredExtensions(m_DeviceExtensions.begin(), m_DeviceExtensions.end());
     Utils::VerifyResult(device.enumerateDeviceExtensionProperties(nullptr),
                         [&, this](const auto& result) {
                             auto& [r, v] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                throw std::runtime_error("Failed to enumerate instance layer properties!");
+                                LOG_ERROR("Failed to enumerate instance layer properties!");
                             } else
                             {
                                 for (const auto& extension : v)
@@ -912,7 +916,7 @@ bool VulkanRHI::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
                                 }
                             }
                         });
-    LOG("Check Device Extension Support, Complete.");
+    LOG_INFO("Check Device Extension Support, Complete.");
     return requiredExtensions.empty();
 }
 std::vector<RawHandle<const AnsiChar>> VulkanRHI::GetRequiredExtensions()
@@ -970,11 +974,11 @@ SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(vk::PhysicalDevice devi
 {
     SwapChainSupportDetails details;
     // 查询基础表面特性
-    Utils::VerifyResult(device.getSurfaceCapabilitiesKHR(m_Surface), STEXT("Failed to get Surface Capabilities!"), &details.capabilities);
+    Utils::VerifyResult(device.getSurfaceCapabilitiesKHR(m_Surface), "Failed to get Surface Capabilities!", &details.capabilities);
     // 查询表面支持格式
-    Utils::VerifyResult(device.getSurfaceFormatsKHR(m_Surface), STEXT("Failed to get Surface Formats!"), &details.formats);
+    Utils::VerifyResult(device.getSurfaceFormatsKHR(m_Surface), "Failed to get Surface Formats!", &details.formats);
     // 查询支持的呈现方式
-    Utils::VerifyResult(device.getSurfacePresentModesKHR(m_Surface), STEXT("Failed to get Surface PresentModes!"), &details.presentModes);
+    Utils::VerifyResult(device.getSurfacePresentModesKHR(m_Surface), "Failed to get Surface PresentModes!", &details.presentModes);
     return details;
 }
 vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats)
@@ -1032,7 +1036,7 @@ vk::ShaderModule VulkanRHI::CreateShaderModule(ArrayIn<char> code)
         .pCode = reinterpret_cast<const uint32_t*>(code.data()),
     };
 
-    Utils::VerifyResult(m_Device.createShaderModule(createInfo, nullptr), STEXT("Failed to create shader module!"), &shaderModule);
+    Utils::VerifyResult(m_Device.createShaderModule(createInfo, nullptr), "Failed to create shader module!", &shaderModule);
 
     return shaderModule;
 }
@@ -1046,7 +1050,8 @@ uint32_t VulkanRHI::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags 
             return i;
         }
     }
-    throw std::runtime_error("Failed to find suitable memory type!");
+    LOG_ERROR("Failed to find suitable memory type!");
+    return 0;
 }
 void VulkanRHI::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory)
 {
@@ -1055,7 +1060,7 @@ void VulkanRHI::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk
         .usage = usage,
         .sharingMode = vk::SharingMode::eExclusive,
     };
-    Utils::VerifyResult(m_Device.createBuffer(bufferInfo), STEXT("Failed to create buffer!"), buffer);
+    Utils::VerifyResult(m_Device.createBuffer(bufferInfo), "Failed to create buffer!", buffer);
 
     vk::MemoryRequirements memRequirements;
     m_Device.getBufferMemoryRequirements(*buffer, &memRequirements);
@@ -1063,8 +1068,8 @@ void VulkanRHI::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk
         .allocationSize = memRequirements.size,
         .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
     };
-    Utils::VerifyResult(m_Device.allocateMemory(allocInfo), STEXT("Failed to allocate vertex buffer memory!"), bufferMemory);
-    Utils::VerifyResult(m_Device.bindBufferMemory(*buffer, *bufferMemory, 0), STEXT("Failed to bind vertex buffer memory!"));
+    Utils::VerifyResult(m_Device.allocateMemory(allocInfo), "Failed to allocate vertex buffer memory!", bufferMemory);
+    Utils::VerifyResult(m_Device.bindBufferMemory(*buffer, *bufferMemory, 0), "Failed to bind vertex buffer memory!");
 }
 void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
 {
@@ -1079,7 +1084,7 @@ void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
     ubo.projectMatrix[1][1] *= -1;  // for vulkan
 
     void* data;
-    Utils::VerifyResult(m_Device.mapMemory(m_UniformBuffersMemory[idx], 0, sizeof(ubo), {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device.mapMemory(m_UniformBuffersMemory[idx], 0, sizeof(ubo), {}), "Failed to map index buffer memory!", &data);
     memcpy(data, &ubo, sizeof(ubo));
     m_Device.unmapMemory(m_UniformBuffersMemory[idx]);
 }

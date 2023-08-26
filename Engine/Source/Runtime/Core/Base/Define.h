@@ -30,3 +30,8 @@
 // ------------------------------------------
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
+// spdlog
+// ------------------------------------------
+//#define SPDLOG_COMPILED_LIB
+#define SPDLOG_USE_STD_FORMAT

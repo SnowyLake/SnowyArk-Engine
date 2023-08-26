@@ -77,12 +77,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)Build\Engine\ThirdParty\GLFW\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Engine\ThirdParty\GLFW\$(Configuration).Intermediate\</IntDir>
-    <ExternalIncludePath>D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty;D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)Build\Engine\ThirdParty\GLFW\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Engine\ThirdParty\GLFW\$(Configuration).Intermediate\</IntDir>
-    <ExternalIncludePath>D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty;D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

@@ -2,32 +2,40 @@
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Global/GlobalTypedef.h"
 
+#include <vector>
 struct GLFWwindow;
 
 namespace Snowy::Ark
 {
+// WindowSystem Config
 struct WindowSystemConfig
 {
-    uint32_t        width        = 1280;
-    uint32_t        height       = 720;
-    const AnsiChar* title        = "SnowyArk";
-    bool            isFullscreen = false;
+    uint32_t    width        = 1280;
+    uint32_t    height       = 720;
+    SString     title        = STEXT("SnowyArk");
+    bool        isFullscreen = false;
+    ERHIBackend rhiBackend   = ERHIBackend::Vulkan;
 };
 
-// RHI context config
+// RHI Context Config
 struct RHIConfig
 {
-    ERHIBackend           backend      = ERHIBackend::Vulkan;
-    RawHandle<GLFWwindow> windowHandle = nullptr;
+    ERHIBackend           backend          = ERHIBackend::Vulkan;
+    RawHandle<GLFWwindow> windowHandle     = nullptr;
+    uint32_t              maxFrameInFlight = 2;
+
+    // Vulkan Context Config
+    std::vector<const AnsiChar*> vkValidationLayers;
+    std::vector<const AnsiChar*> vkDeviceExtensions;
 };
 
-// Render system config
+// RenderSystem Config
 struct RenderSystemConfig
 {
     RHIConfig rhi;
 };
 
-// Runtime global context config
+// RuntimeGlobalContext Config
 struct RuntimeGlobalContextConfig
 {
     WindowSystemConfig windowSys;

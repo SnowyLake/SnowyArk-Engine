@@ -5,6 +5,7 @@ namespace Snowy::Ark
 {
 class WindowSystem;
 class RenderSystem;
+class LogSystem;
 
 struct RuntimeGlobalContext
 {
@@ -13,6 +14,7 @@ struct RuntimeGlobalContext
 
     SharedHandle<WindowSystem> windowSys;
     SharedHandle<RenderSystem> renderSys;
+    SharedHandle<LogSystem> logSys;
 };
 
 extern RuntimeGlobalContext g_GlobalContext;

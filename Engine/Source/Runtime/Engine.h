@@ -1,6 +1,9 @@
 ﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
-#include "Engine/Source/Runtime/Function/Global/GlobalContextConfig.h"
+#include "Engine/Source/Runtime/Core/Log/LogSystem.h"
+#include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
+#include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
+#include "Engine/Source/Runtime/Function/Rendering/RenderSystem.h"
 
 #include <chrono>
 

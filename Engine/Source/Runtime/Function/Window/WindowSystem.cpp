@@ -1,26 +1,28 @@
 ﻿#include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
+#include "Engine/Source/Runtime/Core/Log/Logger.h"
 namespace Snowy::Ark
 {
-void WindowSystem::Init(WindowSystemConfig windowSysConfig, RenderSystemConfig renderSysConfig)
+void WindowSystem::Init(WindowSystemConfig config)
 {
     if (!glfwInit())
     {
         return;
     }
-    m_Width  = windowSysConfig.width;
-    m_Height = windowSysConfig.height;
+    m_Width  = config.width;
+    m_Height = config.height;
 
-    auto backend = renderSysConfig.rhi.backend;
+    auto backend = config.rhiBackend;
     if (backend == ERHIBackend::Vulkan)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     } else
     {
+        LOG_FATAL("Dont support Graphics API.");
         return;
     }
 
-    m_Handle = glfwCreateWindow(m_Width, m_Height, windowSysConfig.title, nullptr, nullptr);
+    m_Handle = glfwCreateWindow(m_Width, m_Height, SSTR_TO_UTF8(config.title).c_str(), nullptr, nullptr);
     if (!m_Handle)
     {
         glfwTerminate();
@@ -36,7 +38,7 @@ void WindowSystem::Init(WindowSystemConfig windowSysConfig, RenderSystemConfig r
     glfwSetCursorPosCallback(m_Handle, CursorPosCallback);
     glfwSetCursorEnterCallback(m_Handle, CursorEnterCallback);
     glfwSetScrollCallback(m_Handle, ScrollCallback);
-    glfwSetDropCallback(m_Handle, DropCallback);
+    glfwSetDropCallback(m_Handle, DropCallback);    
     glfwSetFramebufferSizeCallback(m_Handle, FramebufferResizeCallback);
     glfwSetWindowCloseCallback(m_Handle, WindowCloseCallback);
 

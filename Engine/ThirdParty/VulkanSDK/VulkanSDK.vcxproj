@@ -106,12 +106,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ExternalIncludePath>D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)Build\Engine\ThirdParty\VulkanSDK\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Engine\ThirdParty\VulkanSDK\$(Configuration).Intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ExternalIncludePath>D:\Workspace\Graphics\SnowyArk-Engine\Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(ExternalIncludePath)</ExternalIncludePath>
     <OutDir>$(SolutionDir)Build\Engine\ThirdParty\VulkanSDK\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)Build\Engine\ThirdParty\VulkanSDK\$(Configuration).Intermediate\</IntDir>
   </PropertyGroup>

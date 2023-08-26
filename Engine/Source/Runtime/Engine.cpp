@@ -1,4 +1,5 @@
 ﻿#include "Engine/Source/Runtime/Engine.h"
+#include "Engine/Source/Runtime/Core/Log/Logger.h"
 #include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
 #include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
 #include "Engine/Source/Runtime/Function/Rendering/RenderSystem.h"

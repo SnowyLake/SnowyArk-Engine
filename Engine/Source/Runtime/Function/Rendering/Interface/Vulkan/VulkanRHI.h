@@ -5,10 +5,13 @@
 
 // vulkan.hpp macros was pre define in /Engine/Source/Runtime/Core/Base/Define.h
 #include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
+struct GLFWwindow;
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <optional>
 
 namespace Snowy::Ark
 {
@@ -60,21 +63,11 @@ static std::vector<Vertex> g_TriangleVertices = {
 };
 static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
-constexpr int MAX_FRAMES_IN_FLIGHT = 2;
-
 #ifdef NDEBUG
 constexpr bool g_EnableValidationLayers = false;
 #else
 constexpr bool g_EnableValidationLayers = true;
 #endif
-
-const std::vector<const char*> g_ValidationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> g_DeviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
 
 struct QueueFamilyIndices
 {
@@ -107,6 +100,10 @@ private:
     RawHandle<GLFWwindow> m_WindowHandle;
     vk::Instance m_Instance;
     vk::DebugUtilsMessengerEXT m_Callback;
+
+    uint32_t m_MaxFrameInFlight;
+    std::vector<const AnsiChar*> m_ValidationLayers;
+    std::vector<const AnsiChar*> m_DeviceExtensions;
 
     vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
     vk::Device m_Device;

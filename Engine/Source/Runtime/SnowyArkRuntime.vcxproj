@@ -122,8 +122,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -142,8 +142,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Engine;$(SolutionDir)Engine\ThirdParty;$(SolutionDir)Engine\ThirdParty\VulkanSDK\Include;$(SolutionDir)Engine\ThirdParty\GLFW\include;$(SolutionDir)Engine\ThirdParty\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -157,6 +157,8 @@
     <ClInclude Include="Core\Base\Common.h" />
     <ClInclude Include="Core\Base\Define.h" />
     <ClInclude Include="Core\Base\Macro.h" />
+    <ClInclude Include="Core\Log\Logger.h" />
+    <ClInclude Include="Core\Log\LogSystem.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Function\Global\GlobalContext.h" />
     <ClInclude Include="Function\Global\GlobalContextConfig.h" />
@@ -170,6 +172,7 @@
     <ClInclude Include="Platform\FileSystem.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Core\Log\LogSystem.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Function\Global\GlobalContext.cpp" />
     <ClCompile Include="Function\Rendering\Interface\RHI.cpp" />

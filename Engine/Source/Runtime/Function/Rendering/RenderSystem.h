@@ -12,7 +12,7 @@ class RenderSystem
 public:
     RenderSystem() = default;
 
-    void Init(RenderSystemConfig config, ObserverHandle<GLFWwindow> windowHandle);
+    void Init(RenderSystemConfig config);
     void Tick();
     void Destory();
 
