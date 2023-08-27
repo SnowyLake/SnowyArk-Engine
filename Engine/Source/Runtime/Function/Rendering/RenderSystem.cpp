@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
 namespace Snowy::Ark
 {
-void RenderSystem::Init(RenderSystemConfig config)
+void RenderSystem::Init(Ref<RenderSystemConfig> config)
 {
     m_RHIContext = RHIManager::CreateRHI(config.rhi.backend);
     m_RHIContext->Init(config.rhi);

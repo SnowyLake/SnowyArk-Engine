@@ -6,17 +6,17 @@ namespace Snowy::Ark
 {
 RuntimeGlobalContext g_GlobalContext;
 
-void RuntimeGlobalContext::Init(RuntimeGlobalContextConfig config)
+void RuntimeGlobalContext::Init(Ref<RuntimeGlobalContextConfig> config)
 {
     logSys = MakeShared<LogSystem>();
     logSys->Init();
 
-    auto windowSysConfig = config.windowSys;
+    auto& windowSysConfig = config.windowSys;
     windowSysConfig.rhiBackend = config.renderSys.rhi.backend;
     windowSys = MakeShared<WindowSystem>();
     windowSys->Init(windowSysConfig);
 
-    auto renderSysConfig = config.renderSys;
+    auto& renderSysConfig = config.renderSys;
     renderSysConfig.rhi.windowHandle = windowSys->GetHandle();
     renderSys = MakeShared<RenderSystem>();
     renderSys->Init(renderSysConfig);

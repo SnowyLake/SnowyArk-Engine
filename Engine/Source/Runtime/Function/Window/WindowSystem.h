@@ -12,7 +12,7 @@ namespace Snowy::Ark
 class WindowSystem
 {
 public:
-    void Init(WindowSystemConfig config);
+    void Init(Ref<WindowSystemConfig> config);
     void Destory();
 
     GLFWwindow* GetHandle() const;

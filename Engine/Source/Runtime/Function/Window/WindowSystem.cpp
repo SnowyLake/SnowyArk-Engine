@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Core/Log/Logger.h"
 namespace Snowy::Ark
 {
-void WindowSystem::Init(WindowSystemConfig config)
+void WindowSystem::Init(Ref<WindowSystemConfig> config)
 {
     if (!glfwInit())
     {

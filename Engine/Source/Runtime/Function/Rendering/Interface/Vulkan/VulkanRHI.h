@@ -3,7 +3,6 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
-// vulkan.hpp macros was pre define in /Engine/Source/Runtime/Core/Base/Define.h
 #include <vulkan/vulkan.hpp>
 //#include <GLFW/glfw3.h>
 struct GLFWwindow;
@@ -92,7 +91,7 @@ class VulkanRHI final : public RHI
 public:
     VulkanRHI() = default;
     ~VulkanRHI() = default;
-    void Init(RHIConfig config) override;
+    void Init(Ref<RHIConfig> config) override;
     void Run() override;
     void Destory() override;
 

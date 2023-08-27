@@ -1,7 +1,7 @@
 ﻿#include "Engine/Source/Editor/Include/Editor.h"
 namespace Snowy::Ark
 {
-void Editor::Init(Engine* engine)
+void Editor::Init(ObserverHandle<Engine> engine)
 {
     m_Engine = engine;
 }

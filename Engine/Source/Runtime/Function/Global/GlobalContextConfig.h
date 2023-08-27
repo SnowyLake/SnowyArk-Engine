@@ -41,4 +41,9 @@ struct RuntimeGlobalContextConfig
     WindowSystemConfig windowSys;
     RenderSystemConfig renderSys;
 };
+
+struct EngineConfig
+{
+    RuntimeGlobalContextConfig runtimeGlobalContext;
+};
 }

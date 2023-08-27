@@ -5,7 +5,7 @@
 #include "Engine/Source/Runtime/Function/Rendering/RenderSystem.h"
 namespace Snowy::Ark
 {
-void Engine::Init(EngineConfig config)
+void Engine::Init(Ref<EngineConfig> config)
 {
     g_GlobalContext.Init(config.runtimeGlobalContext);
 }

@@ -12,7 +12,7 @@ class RenderSystem
 public:
     RenderSystem() = default;
 
-    void Init(RenderSystemConfig config);
+    void Init(Ref<RenderSystemConfig> config);
     void Tick();
     void Destory();
 

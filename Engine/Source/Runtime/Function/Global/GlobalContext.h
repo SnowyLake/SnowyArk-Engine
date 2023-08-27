@@ -9,7 +9,7 @@ class LogSystem;
 
 struct RuntimeGlobalContext
 {
-    void Init(RuntimeGlobalContextConfig config);
+    void Init(Ref<RuntimeGlobalContextConfig> config);
     void Destory();
 
     SharedHandle<WindowSystem> windowSys;

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <SnowyCore/SnowyCore.hpp>
 #include "Engine/Source/Runtime/Engine.h"
 namespace Snowy::Ark
 {
@@ -8,12 +9,12 @@ public:
     Editor() = default;
     ~Editor() = default;
 
-    void Init(Engine* engine);
+    void Init(ObserverHandle<Engine> engine);
     void Run();
     void Destroy();
 
 private:
-    Engine* m_Engine = nullptr;
+    RawHandle<Engine> m_Engine = nullptr;
 };
 }
 

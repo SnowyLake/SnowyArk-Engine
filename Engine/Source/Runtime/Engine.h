@@ -9,15 +9,10 @@
 
 namespace Snowy::Ark
 {
-struct EngineConfig
-{
-    RuntimeGlobalContextConfig runtimeGlobalContext;
-};
-
 class Engine
 {
 public:
-    void Init(EngineConfig config);
+    void Init(Ref<EngineConfig> config);
     void Run();
     void Destroy();
 private:

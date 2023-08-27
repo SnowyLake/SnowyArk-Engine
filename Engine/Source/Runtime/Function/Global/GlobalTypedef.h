@@ -14,9 +14,9 @@ enum class ELogLevel : uint8_t
 enum class ERHIBackend : uint8_t
 {
     None,
-    // OpenGL,
+    OpenGL,
     Vulkan,
-    // DirectX11,
-    // DirectX12,
+    DirectX11,
+    DirectX12,
 };
 }

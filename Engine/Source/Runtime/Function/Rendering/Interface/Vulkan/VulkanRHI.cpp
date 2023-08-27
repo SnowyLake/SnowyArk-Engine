@@ -22,7 +22,7 @@ void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessenge
     instance.destroyDebugUtilsMessengerEXT(*pCallback, allocator);
 }
 
-void VulkanRHI::Init(RHIConfig config)
+void VulkanRHI::Init(Ref<RHIConfig> config)
 {
     m_WindowHandle = config.windowHandle;
     m_MaxFrameInFlight = config.maxFrameInFlight;
