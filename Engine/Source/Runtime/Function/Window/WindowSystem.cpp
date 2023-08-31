@@ -2,7 +2,7 @@
 #include "Engine/Source/Runtime/Core/Log/Logger.h"
 namespace Snowy::Ark
 {
-void WindowSystem::Init(Ref<WindowSystemConfig> config)
+void WindowSystem::Init(Ref<WindowSystemConfig> config) 
 {
     if (!glfwInit())
     {
@@ -15,12 +15,12 @@ void WindowSystem::Init(Ref<WindowSystemConfig> config)
     if (backend == ERHIBackend::Vulkan)
     {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     } else
     {
         LOG_FATAL("Dont support Graphics API.");
         return;
     }
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     m_Handle = glfwCreateWindow(m_Width, m_Height, SSTR_TO_UTF8(config.title).c_str(), nullptr, nullptr);
     if (!m_Handle)

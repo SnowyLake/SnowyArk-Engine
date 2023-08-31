@@ -88,13 +88,19 @@
     <ClInclude Include="Core\Log\Logger.h">
       <Filter>Core\Log</Filter>
     </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanInstance.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanAdapter.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanDevice.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Function\Rendering\Interface\RHI.cpp">
-      <Filter>Function\Rendering\Interface</Filter>
     </ClCompile>
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Platform\FileSystem.cpp">
@@ -114,6 +120,15 @@
     </ClCompile>
     <ClCompile Include="Core\Log\LogSystem.cpp">
       <Filter>Core\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanInstance.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanAdapter.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanDevice.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

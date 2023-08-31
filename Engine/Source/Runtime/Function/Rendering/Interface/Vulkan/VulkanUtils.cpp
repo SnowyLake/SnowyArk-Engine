@@ -6,6 +6,38 @@
 
 namespace Snowy::Ark
 {
+bool VulkanUtils::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers)
+{
+    bool support = true;
+    VerifyResult(vk::enumerateInstanceLayerProperties(),
+                 [&](const auto& result) {
+                     auto& [r, v] = result;
+                     if (r != vk::Result::eSuccess)
+                     {
+                         LOG_ERROR("Failed to enumerate instance layer properties!");
+                     } else
+                     {
+                         for (const char* layerName : validationLayers)
+                         {
+                             bool layerFound = false;
+                             for (const auto& layerProperies : v)
+                             {
+                                 if (strcmp(layerName, layerProperies.layerName) == 0)
+                                 {
+                                     layerFound = true;
+                                     break;
+                                 }
+                             }
+                             if (!layerFound)
+                             {
+                                 support = false;
+                             }
+                         }
+                     }
+                 });
+    return support;
+}
+
 vk::Bool32 VKAPI_CALL VulkanUtils::ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                                 VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                                 const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,

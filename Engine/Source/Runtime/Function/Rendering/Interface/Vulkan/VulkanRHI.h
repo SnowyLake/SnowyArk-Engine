@@ -3,6 +3,10 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanAdapter.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanInstance.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanDevice.h"
+
 #include <vulkan/vulkan.hpp>
 //#include <GLFW/glfw3.h>
 struct GLFWwindow;
@@ -62,28 +66,6 @@ static std::vector<Vertex> g_TriangleVertices = {
 };
 static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
-#ifdef NDEBUG
-constexpr bool g_EnableValidationLayers = false;
-#else
-constexpr bool g_EnableValidationLayers = true;
-#endif
-
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool IsComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-struct SwapChainSupportDetails
-{
-    vk::SurfaceCapabilitiesKHR capabilities = {};
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
-};
 
 class VulkanRHI final : public RHI
 {
@@ -97,15 +79,15 @@ public:
 
 private:
     RawHandle<GLFWwindow> m_WindowHandle;
-    vk::Instance m_Instance;
-    vk::DebugUtilsMessengerEXT m_Callback;
+    VulkanInstance m_Instance;
+    VulkanDevice m_Device;
 
     uint32_t m_MaxFrameInFlight;
-    std::vector<const AnsiChar*> m_ValidationLayers;
-    std::vector<const AnsiChar*> m_DeviceExtensions;
 
+
+    vk::DebugUtilsMessengerEXT m_Callback;
     vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-    vk::Device m_Device;
+    vk::Device m_DeviceX;
 
     vk::Queue m_GraphicsQueue;
     vk::Queue m_PresentQueue;
@@ -143,12 +125,14 @@ private:
     std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
 
 public:
-    vk::Device& Device() { return m_Device; }
+    vk::Device& Device() { return m_DeviceX; }
     vk::Queue& GraphicsQueue() { return m_GraphicsQueue; }
     vk::CommandPool& CommandPool() { return m_CommandPool; }
 
 private:
-    void InitVulkan();
+    void PreInit_Internal(Ref<RHIConfig> config);
+    void Init_Internal();
+    void PostInit_Internal();
 
     // ==============================================
     // Feature Functions
@@ -181,15 +165,15 @@ private:
 // Tool Functions, TODO: Utils
 // ==============================================
 private:
-    bool CheckValidationLayerSupport();
     bool CheckDeviceExtensionSupport(vk::PhysicalDevice device);
-    std::vector<const char*> GetRequiredExtensions();
     bool IsDeviceSuitable(vk::PhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
+
     vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
     vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
     vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);
+
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
     void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);

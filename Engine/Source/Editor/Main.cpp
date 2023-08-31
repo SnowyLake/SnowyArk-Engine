@@ -25,6 +25,7 @@ int main()
                 {
                     .backend = Ark::ERHIBackend::Vulkan,
                     .maxFrameInFlight = 2,
+                    .vkEnableValidationLayers = true,
                     .vkValidationLayers = { "VK_LAYER_KHRONOS_validation" },
                     .vkDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME },
                 },

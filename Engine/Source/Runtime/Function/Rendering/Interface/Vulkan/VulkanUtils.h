@@ -62,6 +62,8 @@ public:
     /*----------------------------------------------------------*/
     // Vulkan Tool Functions
     /*----------------------------------------------------------*/
+    static bool CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers);
+
     static vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                               VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,

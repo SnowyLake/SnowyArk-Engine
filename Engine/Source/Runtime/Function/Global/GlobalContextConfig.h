@@ -25,6 +25,7 @@ struct RHIConfig
     uint32_t              maxFrameInFlight = 2;
 
     // Vulkan Context Config
+    bool vkEnableValidationLayers = true;
     std::vector<const AnsiChar*> vkValidationLayers;
     std::vector<const AnsiChar*> vkDeviceExtensions;
 };
