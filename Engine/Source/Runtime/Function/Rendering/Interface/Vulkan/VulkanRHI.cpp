@@ -6,21 +6,9 @@
 
 #include <set>
 
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
-
-void CreateDebugUtilsMessengerEXT(vk::Instance instance, const vk::DebugUtilsMessengerCreateInfoEXT& createInfo, vk::Optional<const vk::AllocationCallbacks> allocator,
-                                  vk::DebugUtilsMessengerEXT* pCallback)
-{
-    Utils::VerifyResult(instance.createDebugUtilsMessengerEXT(createInfo, allocator), "Failed to set up debug callback!", pCallback);
-}
-void DestoryDebugUtilsMessengerEXT(vk::Instance instance, vk::DebugUtilsMessengerEXT* pCallback, vk::Optional<const vk::AllocationCallbacks> allocator = nullptr)
-{
-    instance.destroyDebugUtilsMessengerEXT(*pCallback, allocator);
-}
 
 void VulkanRHI::Init(Ref<RHIConfig> config)
 {
@@ -47,8 +35,6 @@ void VulkanRHI::PreInit_Internal(Ref<RHIConfig> config)
 void VulkanRHI::Init_Internal()
 {
     CreateInstance();
-    SetupDebugCallback();
-    CreateSurface();
     PickPhysicalDevice();
     CreateLogicalDevice();
 
@@ -106,22 +92,13 @@ void VulkanRHI::Destory()
 
     m_DeviceX.destroyCommandPool(m_CommandPool);
     m_DeviceX.destroy();
-    if (m_Instance.enableValidationLayers)
-    {
-        DestoryDebugUtilsMessengerEXT(*m_Instance, &m_Callback);
-    }
 
-    m_Instance->destroySurfaceKHR(m_Surface);
-    m_Instance->destroy();
+    m_Instance.Destroy();
 
     LOG_INFO("Vulkan Destory, Complete.");
 }
 void VulkanRHI::CreateInstance()
 {
-    vk::DynamicLoader loader;
-    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
-
     vk::ApplicationInfo appInfo = {
         .pApplicationName = "VulkanRHI",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -133,45 +110,11 @@ void VulkanRHI::CreateInstance()
     vk::InstanceCreateInfo createInfo = {
         .pApplicationInfo = &appInfo,
     };
-    createInfo.setPEnabledExtensionNames(m_Instance.requiredExtensions);
-    if (m_Instance.enableValidationLayers)
-    {
-        createInfo.setPEnabledLayerNames(m_Instance.validationLayers);
-    } else
-    {
-        createInfo.setPEnabledLayerNames(nullptr);
-    }
-    m_Instance.Init(createInfo);
 
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Instance);
+    m_Instance.Init(this, createInfo);
     LOG_INFO("Vulkan Instance Initialized.");
 }
-void VulkanRHI::SetupDebugCallback()
-{
-    LOG_INFO("Setup Debug Callback, Start.");
-    if (!m_Instance.enableValidationLayers)
-    {
-        return;
-    }
-    vk::DebugUtilsMessengerCreateInfoEXT createInfo = {
-        .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
-        .pfnUserCallback = Utils::ValidationLayerDebugCallback,
-        .pUserData = nullptr,
-    };
 
-    CreateDebugUtilsMessengerEXT(m_Instance, createInfo, nullptr, &m_Callback);
-    LOG_INFO("Setup Debug Callback, Complete.")
-}
-void VulkanRHI::CreateSurface()
-{
-    LOG_INFO("Create Surface, Start.");
-    if (glfwCreateWindowSurface(m_Instance, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
-    {
-        LOG_ERROR("Failed to create window surface!");
-    }
-    LOG_INFO("Create Surface, Complete.")
-}
 void VulkanRHI::PickPhysicalDevice()
 {
     LOG_INFO("Pick Physical Device, Start.");
@@ -230,9 +173,9 @@ void VulkanRHI::CreateLogicalDevice()
         .ppEnabledExtensionNames = m_Device.requiredExtensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
-    if (m_Instance.enableValidationLayers)
+    if (m_Instance.IsEnableValidationLayers())
     {
-        createInfo.setPEnabledLayerNames(m_Instance.validationLayers);
+        createInfo.setPEnabledLayerNames(m_Instance.GetValidationLayers());
     } else
     {
         createInfo.setPEnabledLayerNames(nullptr);
@@ -263,7 +206,7 @@ void VulkanRHI::CreateSwapChain()
     }
 
     vk::SwapchainCreateInfoKHR createInfo = {
-        .surface = m_Surface,
+        .surface = m_Instance.GetVkSurface(),
         .minImageCount = imageCount,
         .imageFormat = surfaceFormat.format,
         .imageColorSpace = surfaceFormat.colorSpace,
@@ -287,8 +230,8 @@ void VulkanRHI::CreateSwapChain()
     createInfo.setPreTransform(swapChainSupport.capabilities.currentTransform)
         .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
         .setPresentMode(presentMode)
-        .setClipped(RHI_TRUE)
-        .setOldSwapchain(RHI_NULL_HANDLE);
+        .setClipped(SA_RHI_TRUE)
+        .setOldSwapchain(SA_RHI_NULL);
 
     Utils::VerifyResult(m_DeviceX.createSwapchainKHR(createInfo, nullptr), "Failed to create swap chain!", &m_SwapChain);
     Utils::VerifyResult(m_DeviceX.getSwapchainImagesKHR(m_SwapChain), "Failed to get swap chain images!", &m_SwapChainImages);
@@ -372,7 +315,7 @@ void VulkanRHI::CreateGraphicsPipeline()
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly = {
         .topology = vk::PrimitiveTopology::eTriangleList,
-        .primitiveRestartEnable = RHI_FALSE,
+        .primitiveRestartEnable = SA_RHI_FALSE,
     };
 
     vk::Viewport viewport = {
@@ -397,12 +340,12 @@ void VulkanRHI::CreateGraphicsPipeline()
     };
 
     vk::PipelineRasterizationStateCreateInfo rasterizer = {
-        .depthClampEnable = RHI_FALSE,
-        .rasterizerDiscardEnable = RHI_FALSE,
+        .depthClampEnable = SA_RHI_FALSE,
+        .rasterizerDiscardEnable = SA_RHI_FALSE,
         .polygonMode = vk::PolygonMode::eFill,
         .cullMode = vk::CullModeFlagBits::eBack,
         .frontFace = vk::FrontFace::eCounterClockwise,
-        .depthBiasEnable = RHI_FALSE,
+        .depthBiasEnable = SA_RHI_FALSE,
         .depthBiasConstantFactor = 0.0f,
         .depthBiasClamp = 0.0f,
         .depthBiasSlopeFactor = 0.0f,
@@ -411,16 +354,16 @@ void VulkanRHI::CreateGraphicsPipeline()
 
     vk::PipelineMultisampleStateCreateInfo multisampling = {
         .rasterizationSamples = vk::SampleCountFlagBits::e1,
-        .sampleShadingEnable = RHI_FALSE,
+        .sampleShadingEnable = SA_RHI_FALSE,
         .minSampleShading = 1,
         .pSampleMask = nullptr,
-        .alphaToCoverageEnable = RHI_FALSE,
-        .alphaToOneEnable = RHI_FALSE,
+        .alphaToCoverageEnable = SA_RHI_FALSE,
+        .alphaToOneEnable = SA_RHI_FALSE,
     };
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment =
     {
-        .blendEnable = RHI_FALSE,
+        .blendEnable = SA_RHI_FALSE,
         .srcColorBlendFactor = vk::BlendFactor::eOne,
         .dstColorBlendFactor = vk::BlendFactor::eZero,
         .colorBlendOp = vk::BlendOp::eAdd,
@@ -431,7 +374,7 @@ void VulkanRHI::CreateGraphicsPipeline()
     };
 
     vk::PipelineColorBlendStateCreateInfo colorBlending = {
-        .logicOpEnable = RHI_FALSE,
+        .logicOpEnable = SA_RHI_FALSE,
         .logicOp = vk::LogicOp::eCopy,
         .attachmentCount = 1,
         .pAttachments = &colorBlendAttachment,
@@ -468,11 +411,11 @@ void VulkanRHI::CreateGraphicsPipeline()
         .layout = m_PipelineLayout,
         .renderPass = m_RenderPass,
         .subpass = 0,
-        .basePipelineHandle = RHI_NULL_HANDLE,
+        .basePipelineHandle = SA_RHI_NULL,
         .basePipelineIndex = -1,
     };
 
-    Utils::VerifyResult(m_DeviceX.createGraphicsPipeline(RHI_NULL_HANDLE, graphicsPipelineInfo),
+    Utils::VerifyResult(m_DeviceX.createGraphicsPipeline(SA_RHI_NULL, graphicsPipelineInfo),
                         "Failed to create graphics pipeline!", &m_GraphicsPipeline);
 
     m_DeviceX.destroyShaderModule(vertShaderModule);
@@ -579,7 +522,7 @@ void VulkanRHI::CreateCommandBuffers()
 void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
 {
 
-    vk::DeviceSize bufferSize = sizeof(SDecayedTypeOf(triangleVertices)::value_type) * triangleVertices.size();
+    vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleVertices)::value_type) * triangleVertices.size();
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
 
@@ -604,7 +547,7 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
 
 void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 {
-    vk::DeviceSize bufferSize = sizeof(SDecayedTypeOf(triangleIndices)::value_type) * triangleIndices.size();
+    vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleIndices)::value_type) * triangleIndices.size();
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
 
@@ -679,9 +622,9 @@ void VulkanRHI::CreateDescriptorSets()
             .dstArrayElement = 0,
             .descriptorCount = 1,
             .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .pImageInfo = RHI_NULL_HANDLE,
+            .pImageInfo = SA_RHI_NULL,
             .pBufferInfo = &bufferInfo,
-            .pTexelBufferView = RHI_NULL_HANDLE,
+            .pTexelBufferView = SA_RHI_NULL,
         };
         m_DeviceX.updateDescriptorSets(descriptorWrite, nullptr);
     }
@@ -801,11 +744,11 @@ void VulkanRHI::RecordCommandBuffer(std::vector<vk::CommandBuffer>& cmds, uint32
 
 void VulkanRHI::DrawFrame()
 {
-    auto waitForFencesResult = m_DeviceX.waitForFences(m_InFlightFences[m_CurrentFrame], RHI_TRUE, std::numeric_limits<uint64_t>::max());
+    auto waitForFencesResult = m_DeviceX.waitForFences(m_InFlightFences[m_CurrentFrame], SA_RHI_TRUE, std::numeric_limits<uint64_t>::max());
 
     uint32_t imageIndex;
     Utils::VerifyResult(m_DeviceX.acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), 
-                                                     m_ImageAvailableSemaphores[m_CurrentFrame], RHI_NULL_HANDLE, &imageIndex),
+                                                     m_ImageAvailableSemaphores[m_CurrentFrame], SA_RHI_NULL, &imageIndex),
                         [this](auto result) {
                             if (result == vk::Result::eErrorOutOfDateKHR)
                             {
@@ -915,7 +858,7 @@ QueueFamilyIndices VulkanRHI::FindQueueFamilies(vk::PhysicalDevice device)
             indices.graphics = idx;
         }
 
-        vk::Bool32 presentSupport = device.getSurfaceSupportKHR(idx, m_Surface).value;
+        vk::Bool32 presentSupport = device.getSurfaceSupportKHR(idx, m_Instance.GetVkSurface()).value;
         if (queueFamily.queueCount > 0 && presentSupport)
         {
             indices.present = idx;
@@ -933,11 +876,11 @@ SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(vk::PhysicalDevice devi
 {
     SwapChainSupportDetails details;
     // 查询基础表面特性
-    Utils::VerifyResult(device.getSurfaceCapabilitiesKHR(m_Surface), "Failed to get Surface Capabilities!", &details.capabilities);
+    Utils::VerifyResult(device.getSurfaceCapabilitiesKHR(m_Instance.GetVkSurface()), "Failed to get Surface Capabilities!", &details.capabilities);
     // 查询表面支持格式
-    Utils::VerifyResult(device.getSurfaceFormatsKHR(m_Surface), "Failed to get Surface Formats!", &details.formats);
+    Utils::VerifyResult(device.getSurfaceFormatsKHR(m_Instance.GetVkSurface()), "Failed to get Surface Formats!", &details.formats);
     // 查询支持的呈现方式
-    Utils::VerifyResult(device.getSurfacePresentModesKHR(m_Surface), "Failed to get Surface PresentModes!", &details.presentModes);
+    Utils::VerifyResult(device.getSurfacePresentModesKHR(m_Instance.GetVkSurface()), "Failed to get Surface PresentModes!", &details.presentModes);
     return details;
 }
 vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats)

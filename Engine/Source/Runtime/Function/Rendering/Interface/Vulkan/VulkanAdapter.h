@@ -29,18 +29,32 @@ struct SwapChainSupportDetails
 class VulkanAdapter
 {    
     friend class VulkanInstance;
-protected:
+    friend struct IVulkanComponentWapper;
+public:
+    using NativeType = vk::PhysicalDevice;
+    using OwnerType  = VulkanInstance;
+
+    auto& GetNative (this auto&& self) noexcept { return self.m_Native; }
+    auto& operator* (this auto&& self) noexcept { return self.m_Native; }
+    auto* operator->(this auto&& self) noexcept { return &(self.m_Native); }
+    operator NativeType() const noexcept { return m_Native; }
+    operator NativeType::NativeType() const noexcept { return m_Native; }
+    void SetOwner(ObserverHandle<OwnerType> owner) { m_Owner = owner; }
+    ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
+
+    const vk::PhysicalDeviceProperties& GetProperties() const noexcept { return m_Properties.properties; }
+
+private:
     void QueryProperties();
     void QueryQueueFamilyIndices();
     void QuerySwapChainSupport();
 
-public:
-    vk::PhysicalDevice physicalDevice;
-    vk::PhysicalDeviceProperties properties;
-
-    QueueFamilyIndices queueFamilyIndices;
-    SwapChainSupportDetails swapchainSupportDetails;
-
-    RawHandle<VulkanInstance> instance;
+private:
+    NativeType m_Native;
+    ObserverHandle<OwnerType> m_Owner;
+    
+    vk::PhysicalDeviceProperties2 m_Properties;
+    QueueFamilyIndices m_QueueFamilyIndices;
+    SwapChainSupportDetails m_SwapchainSupportDetails;
 };
 }

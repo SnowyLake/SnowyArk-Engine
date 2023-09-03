@@ -38,7 +38,7 @@ void WindowSystem::Init(Ref<WindowSystemConfig> config)
     glfwSetCursorPosCallback(m_Handle, CursorPosCallback);
     glfwSetCursorEnterCallback(m_Handle, CursorEnterCallback);
     glfwSetScrollCallback(m_Handle, ScrollCallback);
-    glfwSetDropCallback(m_Handle, DropCallback);    
+    glfwSetDropCallback(m_Handle, DropCallback);
     glfwSetFramebufferSizeCallback(m_Handle, FramebufferResizeCallback);
     glfwSetWindowCloseCallback(m_Handle, WindowCloseCallback);
 

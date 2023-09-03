@@ -1,9 +1,9 @@
 ﻿#include "Engine/Source/Editor/Include/Editor.h"
 namespace Snowy::Ark
 {
-void Editor::Init(ObserverHandle<Engine> engine)
+void Editor::Init(UniqueHandle<Engine>&& engine)
 {
-    m_Engine = engine;
+    m_Engine = std::forward<UniqueHandle<Engine>>(engine);
 }
 void Editor::Run()
 {
@@ -11,7 +11,7 @@ void Editor::Run()
 }
 void Editor::Destroy()
 {
-
+    m_Engine->Destroy();
 }
 }
 

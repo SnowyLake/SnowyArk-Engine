@@ -9,12 +9,12 @@ public:
     Editor() = default;
     ~Editor() = default;
 
-    void Init(ObserverHandle<Engine> engine);
+    void Init(UniqueHandle<Engine>&& engine);
     void Run();
     void Destroy();
 
 private:
-    RawHandle<Engine> m_Engine = nullptr;
+    UniqueHandle<Engine> m_Engine = nullptr;
 };
 }
 

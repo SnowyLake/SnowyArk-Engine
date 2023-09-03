@@ -13,7 +13,7 @@ void Engine::Init(Ref<EngineConfig> config)
 void Engine::Run()
 {
     SharedHandle windowSys = g_GlobalContext.windowSys;
-    ASSERT(windowSys);
+    SAssert(windowSys);
     while (!windowSys->ShouldClose())
     {
         const float deltaTime = CalculateDeltaTime();
@@ -33,6 +33,7 @@ void Engine::Tick(float deltaTime)
     RenderingTick(deltaTime);
     g_GlobalContext.windowSys->PollEvents();
 }
+
 void Engine::LogicTick(float deltaTime)
 {
 }

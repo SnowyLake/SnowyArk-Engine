@@ -31,6 +31,7 @@ public:
             LOG_ERROR(errorMsg);
         }
     }
+
     template<typename T>
     static void VerifyResult(In<vk::ResultValue<T>> result, AnsiStringIn errorMsg, Out<T> output = nullptr, vk::Result targetResult = vk::Result::eSuccess)
     {
@@ -62,13 +63,6 @@ public:
     /*----------------------------------------------------------*/
     // Vulkan Tool Functions
     /*----------------------------------------------------------*/
-    static bool CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers);
-
-    static vk::Bool32 VKAPI_CALL ValidationLayerDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                              VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                              void* pUserData);
-
     static void CopyBuffer(ObserverHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 };
 }

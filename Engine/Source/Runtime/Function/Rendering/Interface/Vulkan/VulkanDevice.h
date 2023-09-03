@@ -24,6 +24,7 @@ public:
     
 private:
     vk::Device m_Device;
-    RawHandle<VulkanAdapter> m_Adapter;
+    RawHandle<VulkanInstance> m_Owner;
+    RawHandle<VulkanAdapter> m_Gpu;
 };
 }

@@ -8,7 +8,6 @@ int main()
 {
     namespace Ark = Snowy::Ark;
 
-    Ark::Engine* engine = new Ark::Engine();
     Ark::EngineConfig engineConfig = {
         .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
         {
@@ -32,13 +31,11 @@ int main()
             },
         },
     };
+    auto engine = Snowy::MakeUnique<Ark::Engine>();
     engine->Init(engineConfig);
 
-    Ark::Editor* editor = new Ark::Editor();
-    editor->Init(engine);
-
+    auto editor = Snowy::MakeUnique<Ark::Editor>();
+    editor->Init(std::move(engine));
     editor->Run();
-
     editor->Destroy();
-    engine->Destroy();
 }

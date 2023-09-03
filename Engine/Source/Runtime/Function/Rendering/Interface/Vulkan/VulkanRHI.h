@@ -70,6 +70,7 @@ static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 class VulkanRHI final : public RHI
 {
     using Utils = VulkanUtils;
+    friend class VulkanInstance;
 public:
     VulkanRHI() = default;
     ~VulkanRHI() = default;
@@ -78,21 +79,16 @@ public:
     void Destory() override;
 
 private:
-    RawHandle<GLFWwindow> m_WindowHandle;
+    ObserverHandle<GLFWwindow> m_WindowHandle;
     VulkanInstance m_Instance;
     VulkanDevice m_Device;
-
     uint32_t m_MaxFrameInFlight;
 
-
-    vk::DebugUtilsMessengerEXT m_Callback;
     vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
     vk::Device m_DeviceX;
 
     vk::Queue m_GraphicsQueue;
     vk::Queue m_PresentQueue;
-
-    vk::SurfaceKHR m_Surface;
 
     vk::SwapchainKHR m_SwapChain;
     vk::Format m_SwapChainImageFormat;
@@ -138,8 +134,6 @@ private:
     // Feature Functions
     // ==============================================
     void CreateInstance();
-    void SetupDebugCallback();
-    void CreateSurface();
     void PickPhysicalDevice();
     void CreateLogicalDevice();
     void CreateSwapChain();
@@ -169,7 +163,6 @@ private:
     bool IsDeviceSuitable(vk::PhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
     SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
-
     vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
     vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
     vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);
