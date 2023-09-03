@@ -19,4 +19,11 @@ enum class ERHIBackend : uint8_t
     DirectX11,
     DirectX12,
 };
+enum class ERHIQueueType : uint8_t
+{
+    Present = 0,
+    Graphics,
+    Compute,
+    Transfer, // Blit?
+};
 }

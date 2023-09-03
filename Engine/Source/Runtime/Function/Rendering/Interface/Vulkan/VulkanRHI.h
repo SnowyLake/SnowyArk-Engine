@@ -80,15 +80,10 @@ public:
 
 private:
     ObserverHandle<GLFWwindow> m_WindowHandle;
+    uint32_t m_MaxFrameInFlight;
     VulkanInstance m_Instance;
     VulkanDevice m_Device;
-    uint32_t m_MaxFrameInFlight;
 
-    vk::PhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
-    vk::Device m_DeviceX;
-
-    vk::Queue m_GraphicsQueue;
-    vk::Queue m_PresentQueue;
 
     vk::SwapchainKHR m_SwapChain;
     vk::Format m_SwapChainImageFormat;
@@ -121,8 +116,8 @@ private:
     std::vector<vk::DeviceMemory> m_UniformBuffersMemory;
 
 public:
-    vk::Device& Device() { return m_DeviceX; }
-    vk::Queue& GraphicsQueue() { return m_GraphicsQueue; }
+    vk::Device& Device() { return m_Device.Native(); }
+    vk::Queue& GraphicsQueue() { return m_Device.GetQueue(ERHIQueueType::Graphics); }
     vk::CommandPool& CommandPool() { return m_CommandPool; }
 
 private:
@@ -162,7 +157,7 @@ private:
     bool CheckDeviceExtensionSupport(vk::PhysicalDevice device);
     bool IsDeviceSuitable(vk::PhysicalDevice device);
     QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
-    SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
+    SwapchainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
     vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
     vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
     vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);

@@ -97,6 +97,9 @@
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanDevice.h">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanSwapchain.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
@@ -128,6 +131,9 @@
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanDevice.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanSwapchain.cpp">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

@@ -33,13 +33,13 @@ void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreat
     Utils::VerifyResult(vk::createInstance(createInfo, nullptr), "Failed to Create Vk Instance!", &m_Native);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
-    
-    FetchAllAdapters();
+
     if (m_EnableValidationLayers)
     {
         SetupDebugCallback();
     }
     CreateSurface();
+    FetchAllAdapters();
 }
 
 void VulkanInstance::Destroy()
@@ -74,25 +74,26 @@ void VulkanInstance::FetchAllAdapters()
 {
     Utils::VerifyResult(m_Native.enumeratePhysicalDevices(),
                         [this](const auto& result) {
-                            auto& [r, gpu] = result;
-                            if (r != vk::Result::eSuccess || gpu.empty())
+                            auto& [r, gpus] = result;
+                            if (r != vk::Result::eSuccess || gpus.empty())
                             {
                                 LOG_ERROR("Faild to find GPUs with Vulkan support!");
                             } else
                             {
-                                auto gpuCount = gpu.size();
+                                auto gpuCount = gpus.size();
                                 m_Adapters.resize(gpuCount);
                                 for (size_t i = 0; i < gpuCount; i++)
                                 {
                                     m_Adapters[i].SetOwner(this);
-                                    m_Adapters[i].GetNative() = gpu[i];
+                                    m_Adapters[i].Native() = gpus[i];
                                     m_Adapters[i].QueryProperties();
                                     m_Adapters[i].QueryQueueFamilyIndices();
-                                    m_Adapters[i].QuerySwapChainSupport();
+                                    m_Adapters[i].QuerySwapchainSupport();
                                 }
                             }
                         });
 }
+
 void VulkanInstance::SetupDebugCallback()
 {
     vk::DebugUtilsMessengerCreateInfoEXT createInfo = {
