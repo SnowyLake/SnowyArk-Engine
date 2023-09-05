@@ -80,10 +80,12 @@ public:
 
 private:
     ObserverHandle<GLFWwindow> m_WindowHandle;
-    uint32_t m_MaxFrameInFlight;
+    
     VulkanInstance m_Instance;
     VulkanDevice m_Device;
 
+    
+    uint32_t m_MaxFrameInFlight;
 
     vk::SwapchainKHR m_SwapChain;
     vk::Format m_SwapChainImageFormat;
@@ -129,7 +131,6 @@ private:
     // Feature Functions
     // ==============================================
     void CreateInstance();
-    void PickPhysicalDevice();
     void CreateLogicalDevice();
     void CreateSwapChain();
     void CreateImageViews();
@@ -147,17 +148,13 @@ private:
     void CreateSyncObjects();
     void ReCreateSwapChain();
     void CleanupSwapChain();
-    void RecordCommandBuffer(std::vector<vk::CommandBuffer>& commandBuffers, uint32_t imageIndex);
+    void RecordCommandBuffer(ArrayIn<vk::CommandBuffer> commandBuffers, uint32_t imageIndex);
     void DrawFrame();
 
 // ==============================================
 // Tool Functions, TODO: Utils
 // ==============================================
 private:
-    bool CheckDeviceExtensionSupport(vk::PhysicalDevice device);
-    bool IsDeviceSuitable(vk::PhysicalDevice device);
-    QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device);
-    SwapchainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice device);
     vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
     vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
     vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);

@@ -1,17 +1,16 @@
 ﻿#include "Engine/Source/Editor/Include/Editor.h"
 namespace Snowy::Ark
 {
-void Editor::Init(UniqueHandle<Engine>&& engine)
+void Editor::Init(UniqueHandle<Engine>&& runtime)
 {
-    m_Engine = std::forward<UniqueHandle<Engine>>(engine);
+    m_Runtime = std::forward<UniqueHandle<Engine>>(runtime);
 }
 void Editor::Run()
 {
-    m_Engine->Run();
+    m_Runtime->Run();
 }
 void Editor::Destroy()
 {
-    m_Engine->Destroy();
+    m_Runtime->Destroy();
 }
 }
-

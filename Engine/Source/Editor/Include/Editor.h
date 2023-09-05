@@ -9,13 +9,11 @@ public:
     Editor() = default;
     ~Editor() = default;
 
-    void Init(UniqueHandle<Engine>&& engine);
+    void Init(UniqueHandle<Engine>&& runtime);
     void Run();
     void Destroy();
 
 private:
-    UniqueHandle<Engine> m_Engine = nullptr;
+    UniqueHandle<Engine> m_Runtime = nullptr;
 };
 }
-
-

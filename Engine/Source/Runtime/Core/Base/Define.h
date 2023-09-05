@@ -22,7 +22,6 @@
     #define VULKAN_HPP_ASSERT_ON_RESULT
     #endif
 // GLFW
-// ------------------------------------------
 #define GLFW_INCLUDE_VULKAN
 #endif  // defined(SNOWY_ARK_RHI_VULKAN)
 

@@ -8,9 +8,14 @@ int main()
 {
     namespace Ark = Snowy::Ark;
 
+    // TODO: Serialize to Json file
     Ark::EngineConfig engineConfig = {
         .runtimeGlobalContext = Ark::RuntimeGlobalContextConfig
         {
+            .logSys = Ark::LogSystemConfig
+            {
+                .outputTarget = Ark::ELogOutputTarget::Console,
+            },
             .windowSys = Ark::WindowSystemConfig
             {
                 .width = 800,
@@ -33,7 +38,6 @@ int main()
     };
     auto engine = Snowy::MakeUnique<Ark::Engine>();
     engine->Init(engineConfig);
-
     auto editor = Snowy::MakeUnique<Ark::Editor>();
     editor->Init(std::move(engine));
     editor->Run();

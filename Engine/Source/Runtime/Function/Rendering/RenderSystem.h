@@ -2,11 +2,10 @@
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Global/GlobalContextConfig.h"
 
-#include "Engine/Source/Runtime/Function/Rendering/Interface/RHIManager.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/RHI.h"
 
 namespace Snowy::Ark
 {
-class RHI;
 class RenderSystem
 {
 public:
@@ -20,4 +19,3 @@ private:
     SharedHandle<RHI> m_RHIContext;
 };
 }
-

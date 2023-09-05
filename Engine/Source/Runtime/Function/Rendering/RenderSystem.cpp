@@ -4,7 +4,7 @@ namespace Snowy::Ark
 {
 void RenderSystem::Init(Ref<RenderSystemConfig> config)
 {
-    m_RHIContext = RHIManager::CreateRHI(config.rhi.backend);
+    m_RHIContext = RHI::CreateRHI(config.rhi.backend);
     m_RHIContext->Init(config.rhi);
 }
 void RenderSystem::Tick()
@@ -13,6 +13,6 @@ void RenderSystem::Tick()
 }
 void RenderSystem::Destory()
 {
-    RHIManager::DestroyRHI(m_RHIContext);
+    RHI::DestroyRHI(m_RHIContext);
 }
 }

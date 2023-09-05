@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanAdapter.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanDevice.h"
@@ -30,8 +30,9 @@ public:
     VulkanAdapter* GetAdapter(uint32_t idx) noexcept { return &(m_Adapters[idx]); }
     uint32_t GetAdapterCount() const noexcept { return static_cast<uint32_t>(m_Adapters.size()); }
 
+
 private:
-    void FetchAllAdapters();
+    void CollectAdapters();
     void SetupDebugCallback();
     void CreateSurface();
 
@@ -41,12 +42,12 @@ private:
     NativeType m_Native;
     ObserverHandle<OwnerType> m_Owner;
 
-    bool m_EnableValidationLayers;
-    std::vector<const AnsiChar*> m_ValidationLayers;
-    std::vector<const AnsiChar*> m_RequiredExtensions;
-
     vk::SurfaceKHR m_Surface;
     vk::DebugUtilsMessengerEXT m_Callback;
     std::vector<VulkanAdapter> m_Adapters;
+
+    bool m_EnableValidationLayers;
+    std::vector<const AnsiChar*> m_ValidationLayers;
+    std::vector<const AnsiChar*> m_RequiredExtensions;
 };
 }

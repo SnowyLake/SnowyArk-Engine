@@ -164,7 +164,6 @@
     <ClInclude Include="Function\Global\GlobalContextConfig.h" />
     <ClInclude Include="Function\Global\GlobalTypedef.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
-    <ClInclude Include="Function\Rendering\Interface\RHIManager.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanAdapter.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanInstance.h" />
@@ -179,6 +178,7 @@
     <ClCompile Include="Core\Log\LogSystem.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Function\Global\GlobalContext.cpp" />
+    <ClCompile Include="Function\Rendering\Interface\RHI.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanAdapter.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanDevice.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanInstance.cpp" />

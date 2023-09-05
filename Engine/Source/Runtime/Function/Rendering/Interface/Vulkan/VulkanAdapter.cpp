@@ -1,15 +1,15 @@
-#include "VulkanAdapter.h"
+ï»¿#include "VulkanAdapter.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanInstance.h"
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanAdapter::QueryProperties()
+void VulkanAdapter::QueryProperties() noexcept
 {
     m_Native.getProperties2(&m_Properties);
 }
 
-void VulkanAdapter::QueryQueueFamilyIndices()
+void VulkanAdapter::QueryQueueFamilyIndices() noexcept
 {
     std::vector<vk::QueueFamilyProperties> queueFamilies = m_Native.getQueueFamilyProperties();
     int idx = 0;
@@ -34,13 +34,15 @@ void VulkanAdapter::QueryQueueFamilyIndices()
     }
 }
 
-void VulkanAdapter::QuerySwapchainSupport()
+SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const noexcept
 {
-    // ²éÑ¯»ù´¡±íÃæÌØÐÔ
-    Utils::VerifyResult(m_Native.getSurfaceCapabilitiesKHR(m_Owner->GetSurface()), "Failed to get Surface Capabilities!", &m_SwapchainSupportDetails.capabilities);
-    // ²éÑ¯±íÃæÖ§³Ö¸ñÊ½
-    Utils::VerifyResult(m_Native.getSurfaceFormatsKHR(m_Owner->GetSurface()), "Failed to get Surface Formats!", &m_SwapchainSupportDetails.formats); 
-    // ²éÑ¯Ö§³ÖµÄ³ÊÏÖ·½Ê½
-    Utils::VerifyResult(m_Native.getSurfacePresentModesKHR(m_Owner->GetSurface()), "Failed to get Surface PresentModes!", &m_SwapchainSupportDetails.presentModes);
+    SwapchainSupportDetails details;
+    // æŸ¥è¯¢åŸºç¡€è¡¨é¢ç‰¹æ€§
+    Utils::VerifyResult(m_Native.getSurfaceCapabilitiesKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface Capabilities!"), &details.capabilities);
+    // æŸ¥è¯¢è¡¨é¢æ”¯æŒæ ¼å¼
+    Utils::VerifyResult(m_Native.getSurfaceFormatsKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface Formats!"), &details.formats);
+    // æŸ¥è¯¢æ”¯æŒçš„å‘ˆçŽ°æ–¹å¼
+    Utils::VerifyResult(m_Native.getSurfacePresentModesKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface PresentModes!"), &details.presentModes);
+    return details;
 }
 }

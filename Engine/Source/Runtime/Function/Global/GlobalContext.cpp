@@ -9,7 +9,7 @@ RuntimeGlobalContext g_GlobalContext;
 void RuntimeGlobalContext::Init(Ref<RuntimeGlobalContextConfig> config)
 {
     logSys = MakeShared<LogSystem>();
-    logSys->Init();
+    logSys->Init(config.logSys);
 
     auto& windowSysConfig = config.windowSys;
     windowSysConfig.rhiBackend = config.renderSys.rhi.backend;

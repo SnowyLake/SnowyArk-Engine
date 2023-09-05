@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Core/Base/Common.h"
 #include "Engine/Source/Runtime/Function/Global/GlobalTypedef.h"
 
@@ -7,6 +7,12 @@ struct GLFWwindow;
 
 namespace Snowy::Ark
 {
+// LogSystem Config
+struct LogSystemConfig
+{
+    ELogOutputTarget outputTarget = ELogOutputTarget::Console;
+};
+
 // WindowSystem Config
 struct WindowSystemConfig
 {
@@ -39,6 +45,7 @@ struct RenderSystemConfig
 // RuntimeGlobalContext Config
 struct RuntimeGlobalContextConfig
 {
+    LogSystemConfig    logSys;
     WindowSystemConfig windowSys;
     RenderSystemConfig renderSys;
 };

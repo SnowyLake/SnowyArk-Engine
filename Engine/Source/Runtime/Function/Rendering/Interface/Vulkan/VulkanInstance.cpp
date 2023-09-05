@@ -1,4 +1,4 @@
-#include "VulkanInstance.h"
+﻿#include "VulkanInstance.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanRHI.h"
 #include <GLFW/glfw3.h>
 
@@ -18,7 +18,7 @@ void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreat
 
     if (m_EnableValidationLayers && CheckValidationLayersSupport(m_ValidationLayers) == false)
     {
-        LOG_ERROR("Vaildation layers requested, but not available!");
+        SA_LOG_ERROR(STEXT("Vaildation layers requested, but not available!"));
     }
 
     createInfo.setPEnabledExtensionNames(m_RequiredExtensions);
@@ -30,7 +30,7 @@ void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreat
         createInfo.setPEnabledLayerNames(nullptr);
     }
 
-    Utils::VerifyResult(vk::createInstance(createInfo, nullptr), "Failed to Create Vk Instance!", &m_Native);
+    Utils::VerifyResult(vk::createInstance(createInfo, nullptr), STEXT("Failed to Create Vk Instance!"), &m_Native);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
 
@@ -39,7 +39,7 @@ void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreat
         SetupDebugCallback();
     }
     CreateSurface();
-    FetchAllAdapters();
+    CollectAdapters();
 }
 
 void VulkanInstance::Destroy()
@@ -70,14 +70,14 @@ void VulkanInstance::PrepareExtensionsAndLayers(In<RHIConfig> config)
     }
 }
 
-void VulkanInstance::FetchAllAdapters()
+void VulkanInstance::CollectAdapters()
 {
     Utils::VerifyResult(m_Native.enumeratePhysicalDevices(),
                         [this](const auto& result) {
                             auto& [r, gpus] = result;
                             if (r != vk::Result::eSuccess || gpus.empty())
                             {
-                                LOG_ERROR("Faild to find GPUs with Vulkan support!");
+                                SA_LOG_ERROR(STEXT("Faild to find GPUs with Vulkan support!"));
                             } else
                             {
                                 auto gpuCount = gpus.size();
@@ -88,7 +88,6 @@ void VulkanInstance::FetchAllAdapters()
                                     m_Adapters[i].Native() = gpus[i];
                                     m_Adapters[i].QueryProperties();
                                     m_Adapters[i].QueryQueueFamilyIndices();
-                                    m_Adapters[i].QuerySwapchainSupport();
                                 }
                             }
                         });
@@ -104,19 +103,19 @@ void VulkanInstance::SetupDebugCallback()
                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                             void* pUserData) -> vk::Bool32
                             {
-                                LOG_INFO(pCallbackData->pMessage);
+                                SA_LOG_INFO(ANSI_TO_SSTR(pCallbackData->pMessage));
                                 return SA_RHI_FALSE;
                             },
         .pUserData = nullptr,
     };
-    Utils::VerifyResult(m_Native.createDebugUtilsMessengerEXT(createInfo), "Failed to set up debug callback!", &m_Callback);
+    Utils::VerifyResult(m_Native.createDebugUtilsMessengerEXT(createInfo), STEXT("Failed to set up debug callback!"), &m_Callback);
 }
 
 void VulkanInstance::CreateSurface()
 {
     if (glfwCreateWindowSurface(m_Native, m_Owner->m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
-        LOG_ERROR("Failed to create vulkan surface!");
+        SA_LOG_ERROR(STEXT("Failed to create vulkan surface!"));
     }
 }
 
@@ -128,7 +127,7 @@ bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> inVal
                             auto& [r, properties] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                LOG_ERROR("Failed to enumerate instance layer properties!");
+                                SA_LOG_ERROR(STEXT("Failed to enumerate instance layer properties!"));
                             } else
                             {
                                 for (const AnsiChar* layerName : inValidationLayers)

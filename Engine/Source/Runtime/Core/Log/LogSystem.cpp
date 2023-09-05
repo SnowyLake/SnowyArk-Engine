@@ -1,4 +1,4 @@
-#include "Engine/Source/Runtime/Core/Log/LogSystem.h"
+﻿#include "Engine/Source/Runtime/Core/Log/LogSystem.h"
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -7,9 +7,11 @@
 
 namespace Snowy::Ark
 {
-void LogSystem::Init()
+void LogSystem::Init(In<LogSystemConfig> config)
 {
-    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    m_OutputTarget = config.outputTarget;
+
+    auto consoleSink = MakeShared<spdlog::sinks::stdout_color_sink_mt>();
     consoleSink->set_level(spdlog::level::trace);
     consoleSink->set_pattern("[%^%l%$] %v");
 
@@ -17,8 +19,7 @@ void LogSystem::Init()
 
     spdlog::init_thread_pool(8192, 1);
 
-    m_Logger = std::make_shared<spdlog::async_logger>("muggle_logger", sinkList.begin(), sinkList.end(),
-                                                      spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+    m_Logger = MakeShared<spdlog::async_logger>("muggle_logger", sinkList, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
     m_Logger->set_level(spdlog::level::trace);
 
     spdlog::register_logger(m_Logger);
@@ -28,5 +29,47 @@ void LogSystem::Destory()
 {
     m_Logger->flush();
     spdlog::drop_all();
+}
+
+void LogSystem::Log(ELogLevel level, SStringIn msg)
+{
+    switch (level)
+    {
+    case ELogLevel::Debug:
+        m_Logger->debug(MessageConvert(msg));
+        break;
+    case ELogLevel::Info:
+        m_Logger->info(MessageConvert(msg));
+        break;
+    case ELogLevel::Warn:
+        m_Logger->warn(MessageConvert(msg));
+        break;
+    case ELogLevel::Error:
+        m_Logger->error(MessageConvert(msg));
+        break;
+    case ELogLevel::Fatal:
+        m_Logger->critical(MessageConvert(msg));
+        FatalCallback();
+        break;
+    default:
+        break;
+    }
+}
+
+AnsiString LogSystem::MessageConvert(SStringIn msg)
+{
+    if (m_OutputTarget == ELogOutputTarget::Console)
+    {
+        return SSTR_TO_ANSI(msg);
+    }
+    else if (m_OutputTarget == ELogOutputTarget::Editor)
+    {
+        return SSTR_TO_UTF8(msg);
+    }
+}
+
+void LogSystem::FatalCallback()
+{
+    std::terminate();
 }
 }

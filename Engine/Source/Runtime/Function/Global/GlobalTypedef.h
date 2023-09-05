@@ -1,6 +1,12 @@
-#pragma once
+﻿#pragma once
 namespace Snowy::Ark
 {
+enum class ELogOutputTarget : uint8_t
+{
+    Console,
+    Editor,
+
+};
 enum class ELogLevel : uint8_t
 {
     Debug,

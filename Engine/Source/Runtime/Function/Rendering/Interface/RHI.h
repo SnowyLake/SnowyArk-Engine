@@ -23,7 +23,8 @@ public:
     virtual void Init(Ref<RHIConfig> config) = 0;
     virtual void Run() = 0;
     virtual void Destory() = 0;
+
+    static SharedHandle<RHI> CreateRHI(ERHIBackend backend);
+    static void DestroyRHI(SharedHandle<RHI> rhi);
 };
 }
-
-

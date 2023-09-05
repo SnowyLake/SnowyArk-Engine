@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 
 namespace Snowy::Ark
@@ -31,21 +31,21 @@ public:
 
     auto& Native    (this auto&& self) noexcept { return self.m_Native; }
     auto& operator* (this auto&& self) noexcept { return self.m_Native; }
-    auto* operator->(this auto&& self) noexcept { return &(self.m_Native); }
+    auto* operator->(this auto&& self) noexcept { return std::addressof(self.m_Native); }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
     void SetOwner(ObserverHandle<OwnerType> owner) noexcept { m_Owner = owner; }
 
-    vk::PhysicalDeviceProperties2& GetProperties2() noexcept { return m_Properties; }
-    vk::PhysicalDeviceProperties& GetProperties() noexcept { return m_Properties.properties; }
-    QueueFamilyIndices& GetQueueFamilyIndices() noexcept { return m_QueueFamilyIndices; }
-    SwapchainSupportDetails& GetSwapChainSupportDetails() noexcept { return m_SwapchainSupportDetails; }
+    auto& GetProperties(this auto&& self) noexcept { return self.m_Properties.properties; }
+    auto& GetProperties2(this auto&& self) noexcept { return self.m_Properties; }
+    auto& GetQueueFamilyIndices(this auto&& self) noexcept { return self.m_QueueFamilyIndices; }
+
+    SwapchainSupportDetails QuerySwapchainSupportDetails() const noexcept;
 
 private:
-    void QueryProperties();
-    void QueryQueueFamilyIndices();
-    void QuerySwapchainSupport();
+    void QueryProperties() noexcept;
+    void QueryQueueFamilyIndices() noexcept;
 
 private:
     NativeType m_Native;
@@ -53,6 +53,5 @@ private:
     
     vk::PhysicalDeviceProperties2 m_Properties;
     QueueFamilyIndices m_QueueFamilyIndices;
-    SwapchainSupportDetails m_SwapchainSupportDetails;
 };
 }
