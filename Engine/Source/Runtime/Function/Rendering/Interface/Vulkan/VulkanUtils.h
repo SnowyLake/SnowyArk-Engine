@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <type_traits>
+
 namespace Snowy::Ark
 {
 // VerifyFunc Concept
@@ -20,6 +22,8 @@ class VulkanRHI;
 // Vulkan Utils
 class VulkanUtils
 {
+public:
+
 public:
     /*----------------------------------------------------------*/
     // Vulkan Result Process Function
@@ -47,22 +51,32 @@ public:
         }
     }
 
-    template<typename F> requires IsVerifyFunc<vk::Result, F>
+    template<typename F>
+        requires IsVerifyFunc<vk::Result, F>
     static void VerifyResult(vk::Result result, In<F> verifyFunc)
     {
         verifyFunc(result);
     }
 
-    template<typename T, typename F> requires IsVerifyFunc<vk::ResultValue<T>, F>
+    template<typename T, typename F>
+        requires IsVerifyFunc<vk::ResultValue<T>, F>
     static void VerifyResult(In<vk::ResultValue<T>> result, In<F> verifyFunc)
     {
         verifyFunc(result);
     }
 
+    // Vulkan Number Type
+    using NumType = uint32_t;
+    template<typename T>
+        requires std::is_integral_v<T> || std::is_enum_v<T>
+    static NumType CastNumType(T num) 
+    { 
+        return static_cast<VulkanUtils::NumType>(num);
+    }
 
     /*----------------------------------------------------------*/
     // Vulkan Tool Functions
     /*----------------------------------------------------------*/
-    static void CopyBuffer(ObserverHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+    static void CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
 };
 }

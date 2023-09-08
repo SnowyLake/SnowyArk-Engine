@@ -6,11 +6,11 @@
 
 namespace Snowy::Ark
 {
-void VulkanUtils::CopyBuffer(ObserverHandle<VulkanRHI> vkContext, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
+void VulkanUtils::CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size)
 {
-    auto& device = vkContext->Device();
-    auto& cmdPool = vkContext->CommandPool();
-    auto& submitQueue = vkContext->GraphicsQueue();
+    auto& device = ctx->Device();
+    auto& cmdPool = ctx->CommandPool();
+    auto& submitQueue = ctx->GraphicsQueue();
 
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = cmdPool,

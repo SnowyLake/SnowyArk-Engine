@@ -8,9 +8,10 @@ namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreateInfo createInfo, vk::Optional<const vk::AllocationCallbacks> allocator)
+void VulkanInstance::Init(ObserverHandle<OwnerType> owner, vk::InstanceCreateInfo createInfo) noexcept
 {
-    m_Owner = vkContext;
+    m_Owner = owner;
+    m_Ctx = owner;
     
     vk::DynamicLoader loader;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
@@ -42,7 +43,7 @@ void VulkanInstance::Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreat
     CollectAdapters();
 }
 
-void VulkanInstance::Destroy()
+void VulkanInstance::Destroy() noexcept
 {
     if (m_EnableValidationLayers)
     {
@@ -52,7 +53,7 @@ void VulkanInstance::Destroy()
     m_Native.destroy();
 }
 
-void VulkanInstance::PrepareExtensionsAndLayers(In<RHIConfig> config)
+void VulkanInstance::PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept
 {
 #ifdef NDEBUG
     m_EnableValidationLayers = false;
@@ -70,7 +71,13 @@ void VulkanInstance::PrepareExtensionsAndLayers(In<RHIConfig> config)
     }
 }
 
-void VulkanInstance::CollectAdapters()
+void VulkanInstance::CreateDevice(Out<VulkanDevice> device) noexcept
+{
+    device->Init(this);
+    SA_LOG_INFO(STEXT("Vulkan Device Initialized."));
+}
+
+void VulkanInstance::CollectAdapters() noexcept
 {
     Utils::VerifyResult(m_Native.enumeratePhysicalDevices(),
                         [this](const auto& result) {
@@ -84,8 +91,7 @@ void VulkanInstance::CollectAdapters()
                                 m_Adapters.resize(gpuCount);
                                 for (size_t i = 0; i < gpuCount; i++)
                                 {
-                                    m_Adapters[i].SetOwner(this);
-                                    m_Adapters[i].Native() = gpus[i];
+                                    m_Adapters[i].Init(this, gpus[i]);
                                     m_Adapters[i].QueryProperties();
                                     m_Adapters[i].QueryQueueFamilyIndices();
                                 }
@@ -93,7 +99,7 @@ void VulkanInstance::CollectAdapters()
                         });
 }
 
-void VulkanInstance::SetupDebugCallback()
+void VulkanInstance::SetupDebugCallback() noexcept
 {
     vk::DebugUtilsMessengerCreateInfoEXT createInfo = {
         .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
@@ -111,15 +117,15 @@ void VulkanInstance::SetupDebugCallback()
     Utils::VerifyResult(m_Native.createDebugUtilsMessengerEXT(createInfo), STEXT("Failed to set up debug callback!"), &m_Callback);
 }
 
-void VulkanInstance::CreateSurface()
+void VulkanInstance::CreateSurface() noexcept
 {
-    if (glfwCreateWindowSurface(m_Native, m_Owner->m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(m_Native, m_Ctx->GetWindowHandle(), nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
         SA_LOG_ERROR(STEXT("Failed to create vulkan surface!"));
     }
 }
 
-bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> inValidationLayers)
+bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> inValidationLayers) noexcept
 {
     bool support = true;
     Utils::VerifyResult(vk::enumerateInstanceLayerProperties(),

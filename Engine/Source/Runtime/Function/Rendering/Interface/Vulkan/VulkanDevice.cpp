@@ -1,31 +1,34 @@
 ﻿#include "VulkanDevice.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanInstance.h"
 #include <set>
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanDevice::Init(In<VulkanInstance> instance)
+void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
 {
-    m_Owner = &(const_cast<VulkanInstance&>(instance));
+    m_Owner = owner;
+    m_Ctx = m_Owner->GetContext();
+
     m_Adapter = m_Owner->GetAdapter(0);
     if (!IsDeviceSuitable(*m_Adapter))
     {
         for (uint32_t i = 1; i < m_Owner->GetAdapterCount(); i++)
         {
-            auto* tempAdapter = m_Owner->GetAdapter(i);
+            auto tempAdapter = m_Owner->GetAdapter(i);
             if (IsDeviceSuitable(*tempAdapter))
             {
                 m_Adapter = tempAdapter;
                 break;
             }
         }
-        if (m_Adapter.Get() == m_Owner->GetAdapter(0))
+        if (m_Adapter == m_Owner->GetAdapter(0))
         {
             SA_LOG_ERROR(STEXT("Failed to find a suitable GPU!"));
         }
     }
 
-    auto& adapter = *m_Adapter;
+    auto& adapter = GetAdapter();
     auto& indices = adapter.GetQueueFamilyIndices();
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { *indices.graphics, *indices.present };
@@ -43,9 +46,9 @@ void VulkanDevice::Init(In<VulkanInstance> instance)
     vk::PhysicalDeviceFeatures deviceFeatures{};
 
     vk::DeviceCreateInfo createInfo = {
-        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .queueCreateInfoCount = Utils::CastNumType(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
-        .enabledExtensionCount = static_cast<uint32_t>(m_RequiredExtensions.size()),
+        .enabledExtensionCount = Utils::CastNumType(m_RequiredExtensions.size()),
         .ppEnabledExtensionNames = m_RequiredExtensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
@@ -61,23 +64,31 @@ void VulkanDevice::Init(In<VulkanInstance> instance)
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
 
-    m_Queues[static_cast<size_t>(ERHIQueueType::Present)] = m_Native.getQueue(indices.present.value(), 0);
-    m_Queues[static_cast<size_t>(ERHIQueueType::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
-
+    m_Queues.resize(2);
+    m_Queues[Utils::CastNumType(ERHIQueueType::Present)] = m_Native.getQueue(indices.present.value(), 0);
+    m_Queues[Utils::CastNumType(ERHIQueueType::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
     SA_LOG_INFO(STEXT("Create Logical Device, Complete."));
 }
-void VulkanDevice::Destroy()
+void VulkanDevice::Destroy() noexcept
 {
     m_Native.destroy();
 }
 
-void VulkanDevice::PrepareExtensionsAndLayers(In<RHIConfig> config)
+void VulkanDevice::PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept
 {
     m_ValidationLayers = config.vkValidationLayers;
     m_RequiredExtensions = config.vkDeviceExtensions;
 }
 
-bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter)
+VulkanSwapchain VulkanDevice::CreateSwapchain() noexcept
+{
+    VulkanSwapchain swapchain;
+    swapchain.Init(this);
+    SA_LOG_INFO(STEXT("Create SwapChain, Complete."));
+    return swapchain;
+}
+
+bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexcept
 {
     std::set<std::string> requiredExtensions(m_RequiredExtensions.begin(), m_RequiredExtensions.end());
     Utils::VerifyResult(adapter->enumerateDeviceExtensionProperties(nullptr),
@@ -97,7 +108,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter)
     return requiredExtensions.empty();
 }
 
-bool VulkanDevice::IsDeviceSuitable(In<VulkanAdapter> adapter)
+bool VulkanDevice::IsDeviceSuitable(In<VulkanAdapter> adapter) noexcept
 {
     auto&& indices = adapter.GetQueueFamilyIndices();
     bool extensionsSupported = CheckDeviceExtensionSupport(adapter);

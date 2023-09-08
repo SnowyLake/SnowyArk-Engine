@@ -6,6 +6,7 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanAdapter.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanInstance.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanDevice.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanSwapchain.h"
 
 #include <vulkan/vulkan.hpp>
 //#include <GLFW/glfw3.h>
@@ -69,8 +70,6 @@ static std::vector<uint16_t> g_TriangleIndices = { 0, 1, 2, 2, 3, 0 };
 
 class VulkanRHI final : public RHI
 {
-    using Utils = VulkanUtils;
-    friend class VulkanInstance;
 public:
     VulkanRHI() = default;
     ~VulkanRHI() = default;
@@ -80,20 +79,13 @@ public:
 
 private:
     ObserverHandle<GLFWwindow> m_WindowHandle;
-    
     VulkanInstance m_Instance;
     VulkanDevice m_Device;
+    VulkanSwapchain m_Swapchain;
 
-    
     uint32_t m_MaxFrameInFlight;
 
-    vk::SwapchainKHR m_SwapChain;
-    vk::Format m_SwapChainImageFormat;
-    vk::Extent2D m_SwapChainExtent;
-    std::vector<vk::Image> m_SwapChainImages;
-    std::vector<vk::ImageView> m_SwapChainImageViews;
     std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
-
     vk::RenderPass m_RenderPass;
 
     vk::DescriptorPool m_DescriptorPool;
@@ -122,18 +114,18 @@ public:
     vk::Queue& GraphicsQueue() { return m_Device.GetQueue(ERHIQueueType::Graphics); }
     vk::CommandPool& CommandPool() { return m_CommandPool; }
 
+    ObserverHandle<GLFWwindow> GetWindowHandle() { return m_WindowHandle; }
+
 private:
     void PreInit_Internal(Ref<RHIConfig> config);
     void Init_Internal();
     void PostInit_Internal();
 
+    void CleanupSwapChain();
+    void RecreateSwapchain();
     // ==============================================
     // Feature Functions
     // ==============================================
-    void CreateInstance();
-    void CreateLogicalDevice();
-    void CreateSwapChain();
-    void CreateImageViews();
     void CreateDescriptorSetLayout();
     void CreateGraphicsPipeline();  
     void CreateRenderPass();
@@ -146,19 +138,14 @@ private:
     void CreateDescriptorPool();
     void CreateDescriptorSets();
     void CreateSyncObjects();
-    void ReCreateSwapChain();
-    void CleanupSwapChain();
+
     void RecordCommandBuffer(ArrayIn<vk::CommandBuffer> commandBuffers, uint32_t imageIndex);
     void DrawFrame();
 
 // ==============================================
-// Tool Functions, TODO: Utils
+// Tool Functions
 // ==============================================
 private:
-    vk::SurfaceFormatKHR ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats);
-    vk::PresentModeKHR ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes);
-    vk::Extent2D ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities);
-
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
     void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);

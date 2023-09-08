@@ -34,15 +34,28 @@ void VulkanRHI::PreInit_Internal(Ref<RHIConfig> config)
 
 void VulkanRHI::Init_Internal()
 {
-    CreateInstance();
-    CreateLogicalDevice();
+    vk::ApplicationInfo appInfo = {
+        .pApplicationName = "VulkanRHI",
+        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+        .pEngineName = "SnowyArk",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_1,
+    };
 
-    CreateSwapChain();
+    vk::InstanceCreateInfo createInfo = {
+        .pApplicationInfo = &appInfo,
+    };
+
+    m_Instance.Init(this, createInfo);
+    SA_LOG_INFO(STEXT("Vulkan Instance Initialized."));
+
+    // TODO: ext与layer处理
+    m_Instance.CreateDevice(&m_Device);
+    m_Swapchain = m_Device.CreateSwapchain();
 }
 
 void VulkanRHI::PostInit_Internal()
 {
-    CreateImageViews();
     CreateRenderPass();
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline();
@@ -74,7 +87,7 @@ void VulkanRHI::Destory()
     m_Device->freeMemory(m_VertexBufferMemory);
     m_Device->destroyBuffer(m_IndexBuffer);
     m_Device->freeMemory(m_IndexBufferMemory);
-    for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
+    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
     {
         m_Device->destroyBuffer(m_UniformBuffers[i]);
         m_Device->freeMemory(m_UniformBuffersMemory[i]);
@@ -95,101 +108,39 @@ void VulkanRHI::Destory()
     SA_LOG_INFO(STEXT("Vulkan Context Destoryed."));
 }
 
-void VulkanRHI::CreateInstance()
+void VulkanRHI::RecreateSwapchain()
 {
-    vk::ApplicationInfo appInfo = {
-        .pApplicationName = "VulkanRHI",
-        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "SnowyArk",
-        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_1,
-    };
+    SharedHandle windowSys = g_GlobalContext.windowSys;
+    auto [width, height] = windowSys->GetFramebufferSize();
+    while (width == 0 || height == 0)
+    {
+        std::tie(width, height) = windowSys->GetFramebufferSize();
+        windowSys->WaitEvents();
+    }
+    m_Device->waitIdle();
 
-    vk::InstanceCreateInfo createInfo = {
-        .pApplicationInfo = &appInfo,
-    };
+    CleanupSwapChain();
 
-    m_Instance.Init(this, createInfo);
-    SA_LOG_INFO(STEXT("Vulkan Instance Initialized."));
+    m_Swapchain.Recreate();
+
+    CreateRenderPass();
+    CreateGraphicsPipeline();
+    CreateFramebuffers();
+    CreateCommandBuffers();
+    SA_LOG_INFO(STEXT("Recreate SwapChain, Complete."));
 }
 
-void VulkanRHI::CreateLogicalDevice()
+void VulkanRHI::CleanupSwapChain()
 {
-    m_Device.Init(m_Instance);
-    SA_LOG_INFO(STEXT("Vulkan Device Initialized."));
-}
-
-void VulkanRHI::CreateSwapChain()
-{
-    auto swapchainSupport = m_Device.GetAdapter().QuerySwapchainSupportDetails();
-    vk::SurfaceFormatKHR surfaceFormat = ChooseSwapChainFormat(swapchainSupport.formats);
-    vk::PresentModeKHR presentMode = ChooseSwapPresentMode(swapchainSupport.presentModes);
-    vk::Extent2D extent = ChooseSwapExtent(swapchainSupport.capabilities);
-
-    uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
-    if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
+    for (auto&& framebuffer : m_SwapChainFramebuffers)
     {
-        imageCount = swapchainSupport.capabilities.maxImageCount;
+        m_Device->destroyFramebuffer(framebuffer);
     }
-
-    vk::SwapchainCreateInfoKHR createInfo = {
-        .surface = m_Instance.GetSurface(),
-        .minImageCount = imageCount,
-        .imageFormat = surfaceFormat.format,
-        .imageColorSpace = surfaceFormat.colorSpace,
-        .imageExtent = extent,
-        .imageArrayLayers = 1,
-        .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
-    };
-
-    QueueFamilyIndices indices = m_Device.GetAdapter().GetQueueFamilyIndices();
-    std::array<uint32_t, 2> queueFamilyIndices = { indices.graphics.value(), indices.present.value() };
-    if (indices.graphics.value() != indices.present.value())
-    {
-        createInfo.setImageSharingMode(vk::SharingMode::eConcurrent)
-            .setQueueFamilyIndices(queueFamilyIndices);
-    } else
-    {
-        createInfo.setImageSharingMode(vk::SharingMode::eExclusive)
-            .setQueueFamilyIndices(nullptr);
-    }
-
-    createInfo.setPreTransform(swapchainSupport.capabilities.currentTransform)
-        .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
-        .setPresentMode(presentMode)
-        .setClipped(SA_RHI_TRUE)
-        .setOldSwapchain(SA_RHI_NULL);
-
-    Utils::VerifyResult(m_Device->createSwapchainKHR(createInfo, nullptr), STEXT("Failed to create swapchain!"), &m_SwapChain);
-    Utils::VerifyResult(m_Device->getSwapchainImagesKHR(m_SwapChain), STEXT("Failed to get swapchain images!"), &m_SwapChainImages);
-
-    m_SwapChainImageFormat = surfaceFormat.format;
-    m_SwapChainExtent = extent;
-
-    SA_LOG_INFO(STEXT("Create SwapChain, Complete."));
-}
-void VulkanRHI::CreateImageViews()
-{
-    m_SwapChainImageViews.resize(m_SwapChainImages.size());
-    for (size_t i = 0; i < m_SwapChainImages.size(); i++)
-    {
-        vk::ImageViewCreateInfo createInfo = {
-            .image = m_SwapChainImages[i],
-            .viewType = vk::ImageViewType::e2D,
-            .format = m_SwapChainImageFormat,
-            .components = vk::ComponentMapping{},
-            .subresourceRange = vk::ImageSubresourceRange {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-        };
-        Utils::VerifyResult(m_Device->createImageView(createInfo, nullptr),
-                            std::format(STEXT("Failed to create ImageView[{}]!"), i), &m_SwapChainImageViews[i]);
-    }
-    SA_LOG_INFO(STEXT("Create Image Views, Complete."));
+    m_Device->freeCommandBuffers(m_CommandPool, m_CommandBuffers);
+    m_Device->destroyPipeline(m_GraphicsPipeline);
+    m_Device->destroyPipelineLayout(m_PipelineLayout);
+    m_Device->destroyRenderPass(m_RenderPass);
+    m_Swapchain.Destory();
 }
 
 void VulkanRHI::CreateDescriptorSetLayout()
@@ -245,15 +196,15 @@ void VulkanRHI::CreateGraphicsPipeline()
     vk::Viewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
-        .width = static_cast<float>(m_SwapChainExtent.width),
-        .height = static_cast<float>(m_SwapChainExtent.height),
+        .width = static_cast<float>(m_Swapchain.GetExtent().width),
+        .height = static_cast<float>(m_Swapchain.GetExtent().height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
 
     vk::Rect2D scissor = {
         .offset = {0, 0},
-        .extent = m_SwapChainExtent,
+        .extent = m_Swapchain.GetExtent(),
     };
 
     vk::PipelineViewportStateCreateInfo viewportState = {
@@ -285,8 +236,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .alphaToOneEnable = SA_RHI_FALSE,
     };
 
-    vk::PipelineColorBlendAttachmentState colorBlendAttachment =
-    {
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment = {
         .blendEnable = SA_RHI_FALSE,
         .srcColorBlendFactor = vk::BlendFactor::eOne,
         .dstColorBlendFactor = vk::BlendFactor::eZero,
@@ -308,7 +258,7 @@ void VulkanRHI::CreateGraphicsPipeline()
     std::array<vk::DynamicState, 2> dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eLineWidth };
 
     vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {
-        .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+        .dynamicStateCount = Utils::CastNumType(dynamicStates.size()),
         .pDynamicStates = dynamicStates.data(),
     };
 
@@ -322,7 +272,7 @@ void VulkanRHI::CreateGraphicsPipeline()
     Utils::VerifyResult(m_Device->createPipelineLayout(pipelineLayoutInfo), STEXT("Failed to create pipeline layout!"), &m_PipelineLayout);
 
     vk::GraphicsPipelineCreateInfo graphicsPipelineInfo = {
-        .stageCount = static_cast<uint32_t>(shaderStages.size()),
+        .stageCount = Utils::CastNumType(shaderStages.size()),
         .pStages = shaderStages.data(),
         .pVertexInputState = &vertexInputInfo,
         .pInputAssemblyState = &inputAssembly,
@@ -339,8 +289,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .basePipelineIndex = -1,
     };
 
-    Utils::VerifyResult(m_Device->createGraphicsPipeline(SA_RHI_NULL, graphicsPipelineInfo),
-                        STEXT("Failed to create graphics pipeline!"), &m_GraphicsPipeline);
+    Utils::VerifyResult(m_Device->createGraphicsPipeline(SA_RHI_NULL, graphicsPipelineInfo), STEXT("Failed to create graphics pipeline!"), &m_GraphicsPipeline);
 
     m_Device->destroyShaderModule(vertShaderModule);
     m_Device->destroyShaderModule(fragShaderModule);
@@ -350,7 +299,7 @@ void VulkanRHI::CreateRenderPass()
 {
     vk::AttachmentDescription colorAttachmentDesc = {
         .flags = vk::AttachmentDescriptionFlags{},
-        .format = m_SwapChainImageFormat,
+        .format = m_Swapchain.GetImageFormat(),
         .samples = vk::SampleCountFlagBits::e1,
         .loadOp = vk::AttachmentLoadOp::eClear,
         .storeOp = vk::AttachmentStoreOp::eStore,
@@ -394,17 +343,17 @@ void VulkanRHI::CreateRenderPass()
 }
 void VulkanRHI::CreateFramebuffers()
 {
-    m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
-    for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
+    m_SwapChainFramebuffers.resize(m_Swapchain.GetImageCount());
+    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
     {
-        std::array<vk::ImageView, 1> attachments{ m_SwapChainImageViews[i] };
+        std::array<vk::ImageView, 1> attachments{ m_Swapchain.GetImageView(i) };
 
         vk::FramebufferCreateInfo framebufferInfo = {
             .renderPass = m_RenderPass,
             .attachmentCount = static_cast<uint32_t>(attachments.size()),
             .pAttachments = attachments.data(),
-            .width = m_SwapChainExtent.width,
-            .height = m_SwapChainExtent.height,
+            .width = m_Swapchain.GetExtent().width,
+            .height = m_Swapchain.GetExtent().height,
             .layers = 1,
         };
 
@@ -492,7 +441,7 @@ void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 void VulkanRHI::CreateUniformBuffer()
 {
     vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-    size_t bufferCount = m_SwapChainImages.size();
+    size_t bufferCount = m_Swapchain.GetImageCount();
     m_UniformBuffers.resize(bufferCount);
     m_UniformBuffersMemory.resize(bufferCount);
 
@@ -507,10 +456,10 @@ void VulkanRHI::CreateUniformBuffer()
 void VulkanRHI::CreateDescriptorPool()
 {
     vk::DescriptorPoolSize poolSize = {
-        .descriptorCount = static_cast<uint32_t>(m_SwapChainImages.size()),
+        .descriptorCount = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
     };
     vk::DescriptorPoolCreateInfo poolInfo = {
-        .maxSets = static_cast<uint32_t>(m_SwapChainImages.size()),
+        .maxSets = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
         .poolSizeCount = 1,
         .pPoolSizes = &poolSize,
     };
@@ -519,15 +468,15 @@ void VulkanRHI::CreateDescriptorPool()
 
 void VulkanRHI::CreateDescriptorSets()
 {
-    std::vector<vk::DescriptorSetLayout> layouts(m_SwapChainImages.size(), m_DescriptorSetLayout);
+    std::vector<vk::DescriptorSetLayout> layouts(m_Swapchain.GetImageCount(), m_DescriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo = {
         .descriptorPool = m_DescriptorPool,
-        .descriptorSetCount = static_cast<uint32_t>(m_SwapChainImages.size()),
+        .descriptorSetCount = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
         .pSetLayouts = layouts.data(),
     };
-    m_DescriptorSets.resize(m_SwapChainImages.size());
+    m_DescriptorSets.resize(m_Swapchain.GetImageCount());
     Utils::VerifyResult(m_Device->allocateDescriptorSets(allocInfo), STEXT("Failed to alloc descriptor set!"), &m_DescriptorSets);
-    for (size_t i = 0; i < m_SwapChainImages.size(); i++)
+    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
     {
         vk::DescriptorBufferInfo bufferInfo = {
             .buffer = m_UniformBuffers[i],
@@ -574,44 +523,6 @@ void VulkanRHI::CreateSyncObjects()
     SA_LOG_INFO(STEXT("Create Semaphores, Complete."));
 }
 
-void VulkanRHI::ReCreateSwapChain()
-{
-    SharedHandle windowSys = g_GlobalContext.windowSys;
-    auto [width, height] = windowSys->GetFramebufferSize();
-    while (width == 0 || height == 0)
-    {
-        std::tie(width, height) = windowSys->GetFramebufferSize();
-        windowSys->WaitEvents();
-    }
-    m_Device->waitIdle();
-
-    CleanupSwapChain();
-
-    CreateSwapChain();
-    CreateImageViews();
-    CreateRenderPass();
-    CreateGraphicsPipeline();
-    CreateFramebuffers();
-    CreateCommandBuffers();
-}
-
-void VulkanRHI::CleanupSwapChain()
-{
-    for (auto&& framebuffer : m_SwapChainFramebuffers)
-    {
-        m_Device->destroyFramebuffer(framebuffer);
-    }
-    m_Device->freeCommandBuffers(m_CommandPool, m_CommandBuffers);
-    m_Device->destroyPipeline(m_GraphicsPipeline);
-    m_Device->destroyPipelineLayout(m_PipelineLayout);
-    m_Device->destroyRenderPass(m_RenderPass);
-    for (auto&& imageView : m_SwapChainImageViews)
-    {
-        m_Device->destroyImageView(imageView);
-    }
-    m_Device->destroySwapchainKHR(m_SwapChain);
-}
-
 void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t idx)
 {
     vk::CommandBufferBeginInfo cmdBeginInfo = {
@@ -634,7 +545,7 @@ void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t id
                                     .framebuffer = m_SwapChainFramebuffers[idx],
                                     .renderArea = vk::Rect2D {
                                         .offset = {0, 0},
-                                        .extent = m_SwapChainExtent,
+                                        .extent = m_Swapchain.GetExtent(),
                                     },
                                     .clearValueCount = static_cast<uint32_t>(clearValues.size()),
                                     .pClearValues = clearValues.data(),
@@ -663,19 +574,19 @@ void VulkanRHI::DrawFrame()
     auto waitForFencesResult = m_Device->waitForFences(m_InFlightFences[m_CurrentFrame], SA_RHI_TRUE, std::numeric_limits<uint64_t>::max());
 
     uint32_t imageIndex;
-    Utils::VerifyResult(m_Device->acquireNextImageKHR(m_SwapChain, std::numeric_limits<uint64_t>::max(), 
+    Utils::VerifyResult(m_Device->acquireNextImageKHR(m_Swapchain, std::numeric_limits<uint64_t>::max(),
                                                      m_ImageAvailableSemaphores[m_CurrentFrame], SA_RHI_NULL, &imageIndex),
                         [this](auto result) {
                             if (result == vk::Result::eErrorOutOfDateKHR)
                             {
-                                ReCreateSwapChain();
+                                RecreateSwapchain();
                                 return;
                             } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
                             {
                                 SA_LOG_ERROR(STEXT("Failed to acquire swap chain image!"));
                             }
                         });
-
+    //SA_LOG_DEBUG(STEXT("{}"), imageIndex);
     UpdateUniformBuffer(imageIndex);
 
     m_Device->resetFences(m_InFlightFences[m_CurrentFrame]);
@@ -700,7 +611,7 @@ void VulkanRHI::DrawFrame()
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame],
         .swapchainCount = 1,
-        .pSwapchains = &m_SwapChain,
+        .pSwapchains = &m_Swapchain.Native(),
         .pImageIndices = &imageIndex,
     };
 
@@ -710,7 +621,7 @@ void VulkanRHI::DrawFrame()
                             if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || windowSys->IsFramebufferResized())
                             {
                                 windowSys->SetFramebufferResizedToDefault();
-                                ReCreateSwapChain();
+                                RecreateSwapchain();
                             } else if (result != vk::Result::eSuccess)
                             {
                                 SA_LOG_ERROR(STEXT("Failed to present swap chain image!"));
@@ -725,52 +636,6 @@ void VulkanRHI::DrawFrame()
 // ==============================================
 // Tool Functions
 // ==============================================
-vk::SurfaceFormatKHR VulkanRHI::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats)
-{
-    if (availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined)
-    {
-        return { vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
-    }
-
-    for (const auto& availableFormat : availableFormats)
-    {
-        if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-        {
-            return availableFormat;
-        }
-    }
-    return availableFormats[0];
-}
-vk::PresentModeKHR VulkanRHI::ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes)
-{
-    auto bestMode = vk::PresentModeKHR::eFifo;
-    for (const auto& availablePresentMode : availablePresentModes)
-    {
-        if (availablePresentMode == vk::PresentModeKHR::eMailbox)
-        {
-            return availablePresentMode;
-        } else
-        {
-            bestMode = vk::PresentModeKHR::eImmediate;
-        }
-    }
-    return bestMode;
-}
-vk::Extent2D VulkanRHI::ChooseSwapExtent(In<vk::SurfaceCapabilitiesKHR> capabilities)
-{
-    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-    {
-        return capabilities.currentExtent;
-    } else
-    {
-        int actualWidth, actualHeight;
-        glfwGetFramebufferSize(m_WindowHandle, &actualWidth, &actualHeight);
-        vk::Extent2D actualExtent = { static_cast<uint32_t>(actualWidth), static_cast<uint32_t>(actualHeight) };
-        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-        return actualExtent;
-    }
-}
 vk::ShaderModule VulkanRHI::CreateShaderModule(ArrayIn<char> code)
 {
     vk::ShaderModule shaderModule;
@@ -824,7 +689,7 @@ void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
     UniformBufferObject ubo = {};
     ubo.modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.viewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.projectMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(m_SwapChainExtent.width) / m_SwapChainExtent.height, 0.1f, 10.0f);
+    ubo.projectMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Swapchain.GetExtent().width) / m_Swapchain.GetExtent().height, 0.1f, 10.0f);
     ubo.projectMatrix[1][1] *= -1;  // for vulkan
 
     void* data;

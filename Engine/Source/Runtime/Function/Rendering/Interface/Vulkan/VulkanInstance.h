@@ -11,9 +11,9 @@ public:
     using NativeType = vk::Instance;
     using OwnerType  = VulkanRHI;
 
-    void Init(ObserverHandle<VulkanRHI> vkContext, vk::InstanceCreateInfo createInfo, vk::Optional<const vk::AllocationCallbacks> allocator = nullptr);
-    void Destroy();
-    void PrepareExtensionsAndLayers(In<RHIConfig> config);
+    void Init(ObserverHandle<OwnerType> owner, vk::InstanceCreateInfo createInfo) noexcept;
+    void Destroy() noexcept;
+    void PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept;
 
     auto& Native    (this auto&& self) noexcept { return self.m_Native; }
     auto& operator* (this auto&& self) noexcept { return self.m_Native; }
@@ -21,26 +21,28 @@ public:
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
-    void SetOwner(ObserverHandle<OwnerType> owner) noexcept { m_Owner = owner; }
+    ObserverHandle<VulkanRHI> GetContext() const noexcept { return m_Ctx; }
 
     bool IsEnableValidationLayers() const noexcept { return m_EnableValidationLayers; }
     const std::vector<const AnsiChar*>& GetValidationLayers() const noexcept { return m_ValidationLayers; }
     const std::vector<const AnsiChar*>& GetRequiredExtensions() const noexcept { return m_RequiredExtensions; }
     const vk::SurfaceKHR& GetSurface() const noexcept { return m_Surface; }
-    VulkanAdapter* GetAdapter(uint32_t idx) noexcept { return &(m_Adapters[idx]); }
+    ObserverHandle<VulkanAdapter> GetAdapter(uint32_t idx) noexcept { return &(m_Adapters[idx]); }
     uint32_t GetAdapterCount() const noexcept { return static_cast<uint32_t>(m_Adapters.size()); }
 
+    void CreateDevice(Out<VulkanDevice> device) noexcept;
 
 private:
-    void CollectAdapters();
-    void SetupDebugCallback();
-    void CreateSurface();
+    void CollectAdapters() noexcept;
+    void SetupDebugCallback() noexcept;
+    void CreateSurface() noexcept;
 
-    bool CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers);
+    bool CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers) noexcept;
 
 private:
     NativeType m_Native;
     ObserverHandle<OwnerType> m_Owner;
+    ObserverHandle<VulkanRHI> m_Ctx;
 
     vk::SurfaceKHR m_Surface;
     vk::DebugUtilsMessengerEXT m_Callback;

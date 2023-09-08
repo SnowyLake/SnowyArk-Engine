@@ -168,6 +168,7 @@
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanDevice.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanInstance.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanSwapchain.h" />
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanTexture.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanUtils.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
     <ClInclude Include="Function\Rendering\RenderSystem.h" />
@@ -184,6 +185,7 @@
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanInstance.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanSwapchain.cpp" />
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanTexture.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanUtils.cpp" />
     <ClCompile Include="Function\Rendering\RenderSystem.cpp" />
     <ClCompile Include="Function\Window\WindowSystem.cpp" />

@@ -12,7 +12,6 @@ void Engine::Init(Ref<EngineConfig> config)
 
 void Engine::Run()
 {
-    SA_LOG_DEBUG(STEXT("0x张峰豪"));
     SharedHandle windowSys = g_GlobalContext.windowSys;
     SAssert(windowSys);
     while (!windowSys->ShouldClose())

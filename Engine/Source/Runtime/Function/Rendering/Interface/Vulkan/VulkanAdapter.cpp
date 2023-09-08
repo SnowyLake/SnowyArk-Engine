@@ -4,6 +4,13 @@ namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
+void VulkanAdapter::Init(ObserverHandle<OwnerType> owner, NativeType native) noexcept
+{
+    m_Native = native;
+    m_Owner = owner;
+    m_Ctx = m_Owner->GetContext();
+}
+
 void VulkanAdapter::QueryProperties() noexcept
 {
     m_Native.getProperties2(&m_Properties);
