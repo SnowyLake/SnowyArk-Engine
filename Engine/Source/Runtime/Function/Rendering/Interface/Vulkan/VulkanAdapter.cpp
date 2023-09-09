@@ -41,7 +41,7 @@ void VulkanAdapter::QueryQueueFamilyIndices() noexcept
     }
 }
 
-SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const noexcept
+SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const
 {
     SwapchainSupportDetails details;
     // 查询基础表面特性

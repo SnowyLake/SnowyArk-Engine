@@ -14,7 +14,6 @@ public:
 public:
     void Init(ObserverHandle<OwnerType> owner) noexcept; 
     void Destroy() noexcept;
-    void PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept;
 
     auto& Native    (this auto&& self) noexcept { return self.m_Native; }
     auto& operator* (this auto&& self) noexcept { return self.m_Native; }
@@ -26,10 +25,10 @@ public:
 
     VulkanAdapter& GetAdapter() const noexcept { return *m_Adapter; }
     vk::Queue& GetQueue(ERHIQueueType type) { return m_Queues[static_cast<size_t>(type)]; }
-    const std::vector<const AnsiChar*>& GetValidationLayers() const noexcept { return m_ValidationLayers; }
-    const std::vector<const AnsiChar*>& GetRequiredExtensions() const noexcept { return m_RequiredExtensions; }
+    std::vector<const AnsiChar*>& ValidationLayers() noexcept { return m_ValidationLayers; }
+    std::vector<const AnsiChar*>& RequiredExtensions() noexcept { return m_RequiredExtensions; }
 
-    VulkanSwapchain CreateSwapchain() noexcept;
+    void CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept;
 
 private:
     bool CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexcept;

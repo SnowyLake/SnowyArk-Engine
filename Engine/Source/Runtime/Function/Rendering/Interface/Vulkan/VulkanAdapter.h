@@ -43,7 +43,7 @@ public:
     auto& GetProperties2(this auto&& self) noexcept { return self.m_Properties; }
     auto& GetQueueFamilyIndices(this auto&& self) noexcept { return self.m_QueueFamilyIndices; }
 
-    SwapchainSupportDetails QuerySwapchainSupportDetails() const noexcept;
+    SwapchainSupportDetails QuerySwapchainSupportDetails() const;
 
 private:
     void QueryProperties() noexcept;

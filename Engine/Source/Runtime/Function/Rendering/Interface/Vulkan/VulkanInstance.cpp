@@ -8,7 +8,7 @@ namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanInstance::Init(ObserverHandle<OwnerType> owner, vk::InstanceCreateInfo createInfo) noexcept
+void VulkanInstance::Init(ObserverHandle<OwnerType> owner) noexcept
 {
     m_Owner = owner;
     m_Ctx = owner;
@@ -16,6 +16,18 @@ void VulkanInstance::Init(ObserverHandle<OwnerType> owner, vk::InstanceCreateInf
     vk::DynamicLoader loader;
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+
+    vk::ApplicationInfo appInfo = {
+        .pApplicationName = "VulkanRHI",
+        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+        .pEngineName = "SnowyArk",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_1,
+    };
+
+    vk::InstanceCreateInfo createInfo = {
+        .pApplicationInfo = &appInfo,
+    };
 
     if (m_EnableValidationLayers && CheckValidationLayersSupport(m_ValidationLayers) == false)
     {
@@ -53,26 +65,10 @@ void VulkanInstance::Destroy() noexcept
     m_Native.destroy();
 }
 
-void VulkanInstance::PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept
-{
-#ifdef NDEBUG
-    m_EnableValidationLayers = false;
-#else
-    m_EnableValidationLayers = true & config.vkEnableValidationLayers;
-#endif
-    m_ValidationLayers = config.vkValidationLayers;
-
-    uint32_t glfwExtensionCount = 0;
-    const AnsiChar** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    m_RequiredExtensions = std::vector<const AnsiChar*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
-    if (m_EnableValidationLayers)
-    {
-        m_RequiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-}
-
 void VulkanInstance::CreateDevice(Out<VulkanDevice> device) noexcept
 {
+    device->ValidationLayers().append_range(m_ValidationLayers);
+    device->RequiredExtensions().append_range(m_RequiredDeviceExtensions);
     device->Init(this);
     SA_LOG_INFO(STEXT("Vulkan Device Initialized."));
 }

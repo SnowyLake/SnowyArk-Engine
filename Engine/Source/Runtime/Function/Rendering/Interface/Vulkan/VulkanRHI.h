@@ -117,8 +117,7 @@ public:
     ObserverHandle<GLFWwindow> GetWindowHandle() { return m_WindowHandle; }
 
 private:
-    void PreInit_Internal(Ref<RHIConfig> config);
-    void Init_Internal();
+    void Init_Internal(Ref<RHIConfig> config);
     void PostInit_Internal();
 
     void CleanupSwapChain();
@@ -146,6 +145,8 @@ private:
 // Tool Functions
 // ==============================================
 private:
+    void CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> config) noexcept;
+
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code);
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
     void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);

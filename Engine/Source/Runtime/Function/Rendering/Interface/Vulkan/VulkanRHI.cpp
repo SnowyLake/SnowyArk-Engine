@@ -12,10 +12,11 @@ using Utils = VulkanUtils;
 
 void VulkanRHI::Init(Ref<RHIConfig> config)
 {
-    PreInit_Internal(config);
-    Init_Internal();
-    PostInit_Internal();
+    Init_Internal(config);
     SA_LOG_INFO(STEXT("Vulkan Context Initialized."));
+    SA_LOG_INFO(STEXT("========================================================"));
+
+    PostInit_Internal();
 }
 
 void VulkanRHI::Run()
@@ -23,35 +24,14 @@ void VulkanRHI::Run()
     DrawFrame();
 }
 
-void VulkanRHI::PreInit_Internal(Ref<RHIConfig> config)
+void VulkanRHI::Init_Internal(Ref<RHIConfig> config)
 {
     m_WindowHandle = config.windowHandle;
     m_MaxFrameInFlight = config.maxFrameInFlight;
 
-    m_Instance.PrepareExtensionsAndLayers(config);
-    m_Device.PrepareExtensionsAndLayers(config);
-}
-
-void VulkanRHI::Init_Internal()
-{
-    vk::ApplicationInfo appInfo = {
-        .pApplicationName = "VulkanRHI",
-        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "SnowyArk",
-        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_1,
-    };
-
-    vk::InstanceCreateInfo createInfo = {
-        .pApplicationInfo = &appInfo,
-    };
-
-    m_Instance.Init(this, createInfo);
-    SA_LOG_INFO(STEXT("Vulkan Instance Initialized."));
-
-    // TODO: ext与layer处理
+    CreateInstance(&m_Instance, config);
     m_Instance.CreateDevice(&m_Device);
-    m_Swapchain = m_Device.CreateSwapchain();
+    m_Device.CreateSwapchain(&m_Swapchain);
 }
 
 void VulkanRHI::PostInit_Internal()
@@ -632,6 +612,27 @@ void VulkanRHI::DrawFrame()
     m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFrameInFlight;
 }
 
+
+void VulkanRHI::CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> config) noexcept
+{
+#ifdef NDEBUG
+    instance->EnableValidationLayers() = false;
+#else
+    instance->EnableValidationLayers() = true & config.vkEnableValidationLayers;
+#endif
+    instance->ValidationLayers().append_range(config.vkValidationLayers);
+
+    uint32_t glfwExtensionCount = 0;
+    const AnsiChar** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    instance->RequiredExtensions().append_range(std::vector<const AnsiChar*>(glfwExtensions, glfwExtensions + glfwExtensionCount));
+    if (instance->EnableValidationLayers())
+    {
+        instance->RequiredExtensions().emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+    instance->RequiredDeviceExtensions().append_range(config.vkDeviceExtensions);
+    instance->Init(this);
+    SA_LOG_INFO(STEXT("Vulkan Instance Initialized."));
+}
 
 // ==============================================
 // Tool Functions

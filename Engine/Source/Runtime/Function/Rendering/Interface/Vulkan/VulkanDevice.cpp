@@ -52,7 +52,7 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
         .ppEnabledExtensionNames = m_RequiredExtensions.data(),
         .pEnabledFeatures = &deviceFeatures,
     };
-    if (m_Owner->IsEnableValidationLayers())
+    if (m_Owner->EnableValidationLayers())
     {
         createInfo.setPEnabledLayerNames(m_ValidationLayers);
     } else
@@ -67,25 +67,17 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
     m_Queues.resize(2);
     m_Queues[Utils::CastNumType(ERHIQueueType::Present)] = m_Native.getQueue(indices.present.value(), 0);
     m_Queues[Utils::CastNumType(ERHIQueueType::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
-    SA_LOG_INFO(STEXT("Create Logical Device, Complete."));
 }
+
 void VulkanDevice::Destroy() noexcept
 {
     m_Native.destroy();
 }
 
-void VulkanDevice::PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept
+void VulkanDevice::CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept
 {
-    m_ValidationLayers = config.vkValidationLayers;
-    m_RequiredExtensions = config.vkDeviceExtensions;
-}
-
-VulkanSwapchain VulkanDevice::CreateSwapchain() noexcept
-{
-    VulkanSwapchain swapchain;
-    swapchain.Init(this);
-    SA_LOG_INFO(STEXT("Create SwapChain, Complete."));
-    return swapchain;
+    swapchain->Init(this);
+    SA_LOG_INFO(STEXT("Vulkan SwapChain, Initialized."));
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexcept

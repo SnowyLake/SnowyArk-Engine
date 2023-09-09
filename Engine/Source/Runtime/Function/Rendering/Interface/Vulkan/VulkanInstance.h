@@ -11,9 +11,8 @@ public:
     using NativeType = vk::Instance;
     using OwnerType  = VulkanRHI;
 
-    void Init(ObserverHandle<OwnerType> owner, vk::InstanceCreateInfo createInfo) noexcept;
+    void Init(ObserverHandle<OwnerType> owner) noexcept;
     void Destroy() noexcept;
-    void PrepareExtensionsAndLayers(In<RHIConfig> config) noexcept;
 
     auto& Native    (this auto&& self) noexcept { return self.m_Native; }
     auto& operator* (this auto&& self) noexcept { return self.m_Native; }
@@ -23,9 +22,10 @@ public:
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
     ObserverHandle<VulkanRHI> GetContext() const noexcept { return m_Ctx; }
 
-    bool IsEnableValidationLayers() const noexcept { return m_EnableValidationLayers; }
-    const std::vector<const AnsiChar*>& GetValidationLayers() const noexcept { return m_ValidationLayers; }
-    const std::vector<const AnsiChar*>& GetRequiredExtensions() const noexcept { return m_RequiredExtensions; }
+    bool& EnableValidationLayers() noexcept { return m_EnableValidationLayers; }
+    std::vector<const AnsiChar*>& ValidationLayers() noexcept { return m_ValidationLayers; }
+    std::vector<const AnsiChar*>& RequiredExtensions() noexcept { return m_RequiredExtensions; }
+    std::vector<const AnsiChar*>& RequiredDeviceExtensions() noexcept { return m_RequiredDeviceExtensions; }
     const vk::SurfaceKHR& GetSurface() const noexcept { return m_Surface; }
     ObserverHandle<VulkanAdapter> GetAdapter(uint32_t idx) noexcept { return &(m_Adapters[idx]); }
     uint32_t GetAdapterCount() const noexcept { return static_cast<uint32_t>(m_Adapters.size()); }
@@ -51,5 +51,6 @@ private:
     bool m_EnableValidationLayers;
     std::vector<const AnsiChar*> m_ValidationLayers;
     std::vector<const AnsiChar*> m_RequiredExtensions;
+    std::vector<const AnsiChar*> m_RequiredDeviceExtensions;
 };
 }
