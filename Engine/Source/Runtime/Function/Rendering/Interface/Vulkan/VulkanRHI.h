@@ -26,7 +26,7 @@ struct UniformBufferObject
     glm::mat4 projectMatrix;
 };
 
-struct Vertex
+struct TempVertex
 {
     glm::vec2 position;
     glm::vec3 color;
@@ -35,7 +35,7 @@ struct Vertex
     {
         vk::VertexInputBindingDescription bindingDescription = {
             .binding = 0,
-            .stride = sizeof(Vertex),
+            .stride = sizeof(TempVertex),
             .inputRate = vk::VertexInputRate::eVertex,
         };
         return bindingDescription;
@@ -47,19 +47,19 @@ struct Vertex
             .location = 0,
             .binding = 0,
             .format = vk::Format::eR32G32Sfloat,
-            .offset = offsetof(Vertex, position),
+            .offset = offsetof(TempVertex, position),
         };
         attributeDescriptions[1] = {
             .location = 1,
             .binding = 0,
             .format = vk::Format::eR32G32B32Sfloat,
-            .offset = offsetof(Vertex, color),
+            .offset = offsetof(TempVertex, color),
         };
         return attributeDescriptions;
     }
 };
 
-static std::vector<Vertex> g_TriangleVertices = {
+static std::vector<TempVertex> g_TriangleVertices = {
     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
     {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
     {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
@@ -73,7 +73,7 @@ class VulkanRHI final : public RHI
 public:
     VulkanRHI() = default;
     ~VulkanRHI() = default;
-    void Init(Ref<RHIConfig> config) override;
+    void Init(In<RHIConfig> config) override;
     void Run() override;
     void Destory() override;
 
@@ -83,7 +83,7 @@ private:
     VulkanDevice m_Device;
     VulkanSwapchain m_Swapchain;
 
-    uint32_t m_MaxFrameInFlight;
+    uint32_t m_MaxFrameCountInFlight;
 
     std::vector<vk::Framebuffer> m_SwapChainFramebuffers;
     vk::RenderPass m_RenderPass;
@@ -101,7 +101,7 @@ private:
     std::vector<vk::Semaphore> m_ImageAvailableSemaphores;
     std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
     std::vector<vk::Fence> m_InFlightFences;
-    size_t m_CurrentFrame = 0;
+    size_t m_CurrFrameIndex = 0;
 
     vk::Buffer m_VertexBuffer, m_IndexBuffer;
     vk::DeviceMemory m_VertexBufferMemory, m_IndexBufferMemory;
@@ -117,7 +117,7 @@ public:
     ObserverHandle<GLFWwindow> GetWindowHandle() { return m_WindowHandle; }
 
 private:
-    void Init_Internal(Ref<RHIConfig> config);
+    void Init_Internal(In<RHIConfig> config);
     void PostInit_Internal();
 
     void CleanupSwapChain();
@@ -131,7 +131,7 @@ private:
     void CreateFramebuffers();
     void CreateCommandPool();
     void CreateCommandBuffers();
-    void CreateVertexBuffer(ArrayIn<Vertex> triangleVertices);
+    void CreateVertexBuffer(ArrayIn<TempVertex> triangleVertices);
     void CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices);
     void CreateUniformBuffer();
     void CreateDescriptorPool();
@@ -146,10 +146,6 @@ private:
 // ==============================================
 private:
     void CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> config) noexcept;
-
-    vk::ShaderModule CreateShaderModule(ArrayIn<char> code);
-    uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags props);
-    void CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory);
     void UpdateUniformBuffer(uint32_t idx);
 };
 }

@@ -10,7 +10,7 @@ namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanRHI::Init(Ref<RHIConfig> config)
+void VulkanRHI::Init(In<RHIConfig> config)
 {
     Init_Internal(config);
     SA_LOG_INFO(STEXT("Vulkan Context Initialized."));
@@ -24,10 +24,10 @@ void VulkanRHI::Run()
     DrawFrame();
 }
 
-void VulkanRHI::Init_Internal(Ref<RHIConfig> config)
+void VulkanRHI::Init_Internal(In<RHIConfig> config)
 {
     m_WindowHandle = config.windowHandle;
-    m_MaxFrameInFlight = config.maxFrameInFlight;
+    m_MaxFrameCountInFlight = config.maxFrameInFlight;
 
     CreateInstance(&m_Instance, config);
     m_Instance.CreateDevice(&m_Device);
@@ -67,13 +67,14 @@ void VulkanRHI::Destory()
     m_Device->freeMemory(m_VertexBufferMemory);
     m_Device->destroyBuffer(m_IndexBuffer);
     m_Device->freeMemory(m_IndexBufferMemory);
+
     for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
     {
         m_Device->destroyBuffer(m_UniformBuffers[i]);
         m_Device->freeMemory(m_UniformBuffersMemory[i]);
     }
 
-    for (size_t i = 0; i < m_MaxFrameInFlight; i++)
+    for (size_t i = 0; i < m_MaxFrameCountInFlight; i++)
     {
         m_Device->destroySemaphore(m_ImageAvailableSemaphores[i]);
         m_Device->destroySemaphore(m_RenderFinishedSemaphores[i]);
@@ -141,16 +142,17 @@ void VulkanRHI::CreateDescriptorSetLayout()
 
 void VulkanRHI::CreateGraphicsPipeline()
 {
+    // TODO: Move FileSystem to GlobalContext
     auto&& fs = FileSystem::GetInstance();
     auto vertShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/vert.spv"));
-    auto vertShaderModule = CreateShaderModule(vertShaderBinary);
+    auto vertShaderModule = m_Device.CreateShaderModule(vertShaderBinary);
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = vertShaderModule,
         .pName = "main",
     };
     auto fragShaderBinary = fs.ReadSpirvShaderBinary(ENGINE_PATH("Engine/Shaders/SPIR-V/frag.spv"));
-    auto fragShaderModule = CreateShaderModule(fragShaderBinary);
+    auto fragShaderModule = m_Device.CreateShaderModule(fragShaderBinary);
     vk::PipelineShaderStageCreateInfo fragShaderStageInfo = {
         .stage = vk::ShaderStageFlagBits::eFragment,
         .module = fragShaderModule,
@@ -159,8 +161,8 @@ void VulkanRHI::CreateGraphicsPipeline()
 
     std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
 
-    auto bindingDescription = Vertex::GetBindingDescription();
-    auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+    auto bindingDescription = TempVertex::GetBindingDescription();
+    auto attributeDescriptions = TempVertex::GetAttributeDescriptions();
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &bindingDescription,
@@ -330,7 +332,7 @@ void VulkanRHI::CreateFramebuffers()
 
         vk::FramebufferCreateInfo framebufferInfo = {
             .renderPass = m_RenderPass,
-            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .attachmentCount = Utils::CastNumType(attachments.size()),
             .pAttachments = attachments.data(),
             .width = m_Swapchain.GetExtent().width,
             .height = m_Swapchain.GetExtent().height,
@@ -367,25 +369,23 @@ void VulkanRHI::CreateCommandBuffers()
     SA_LOG_INFO(STEXT("Create Command Buffers, Complete."))
 }
 
-void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
+void VulkanRHI::CreateVertexBuffer(ArrayIn<TempVertex> triangleVertices)
 {
 
     vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleVertices)::value_type) * triangleVertices.size();
-    vk::Buffer stagingBuffer;
-    vk::DeviceMemory stagingBufferMemory;
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                 &stagingBuffer, &stagingBufferMemory);
+    auto [stagingBuffer, stagingBufferMemory] 
+        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
     void* data;
     Utils::VerifyResult(m_Device->mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
     memcpy(data, triangleVertices.data(), (size_t)bufferSize);
     m_Device->unmapMemory(stagingBufferMemory);
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                 &m_VertexBuffer, &m_VertexBufferMemory);
+    std::tie(m_VertexBuffer, m_VertexBufferMemory) 
+        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, 
+                                vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     Utils::CopyBuffer(this, stagingBuffer, m_VertexBuffer, bufferSize);
 
@@ -396,21 +396,19 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<Vertex> triangleVertices)
 void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 {
     vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleIndices)::value_type) * triangleIndices.size();
-    vk::Buffer stagingBuffer;
-    vk::DeviceMemory stagingBufferMemory;
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                 &stagingBuffer, &stagingBufferMemory);
+    auto [stagingBuffer, stagingBufferMemory] 
+        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
     void* data;
     Utils::VerifyResult(m_Device->mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
     memcpy(data, triangleIndices.data(), (size_t)bufferSize);
     m_Device->unmapMemory(stagingBufferMemory);
 
-    CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-                 vk::MemoryPropertyFlagBits::eDeviceLocal,
-                 &m_IndexBuffer, &m_IndexBufferMemory);
+    std::tie(m_IndexBuffer, m_IndexBufferMemory)
+        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+                                vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     Utils::CopyBuffer(this, stagingBuffer, m_IndexBuffer, bufferSize);
 
@@ -427,19 +425,19 @@ void VulkanRHI::CreateUniformBuffer()
 
     for (size_t i = 0; i < bufferCount; i++)
     {
-        CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
-                     vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                     &m_UniformBuffers[i], &m_UniformBuffersMemory[i]);
+        std::tie(m_UniformBuffers[i], m_UniformBuffersMemory[i]) 
+            = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
+                                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 }
 
 void VulkanRHI::CreateDescriptorPool()
 {
     vk::DescriptorPoolSize poolSize = {
-        .descriptorCount = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
+        .descriptorCount = m_Swapchain.GetImageCount(),
     };
     vk::DescriptorPoolCreateInfo poolInfo = {
-        .maxSets = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
+        .maxSets = m_Swapchain.GetImageCount(),
         .poolSizeCount = 1,
         .pPoolSizes = &poolSize,
     };
@@ -451,7 +449,7 @@ void VulkanRHI::CreateDescriptorSets()
     std::vector<vk::DescriptorSetLayout> layouts(m_Swapchain.GetImageCount(), m_DescriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo = {
         .descriptorPool = m_DescriptorPool,
-        .descriptorSetCount = static_cast<uint32_t>(m_Swapchain.GetImageCount()),
+        .descriptorSetCount = Utils::CastNumType(m_Swapchain.GetImageCount()),
         .pSetLayouts = layouts.data(),
     };
     m_DescriptorSets.resize(m_Swapchain.GetImageCount());
@@ -480,16 +478,16 @@ void VulkanRHI::CreateDescriptorSets()
 
 void VulkanRHI::CreateSyncObjects()
 {
-    m_ImageAvailableSemaphores.resize(m_MaxFrameInFlight);
-    m_RenderFinishedSemaphores.resize(m_MaxFrameInFlight);
-    m_InFlightFences.resize(m_MaxFrameInFlight);
+    m_ImageAvailableSemaphores.resize(m_MaxFrameCountInFlight);
+    m_RenderFinishedSemaphores.resize(m_MaxFrameCountInFlight);
+    m_InFlightFences.resize(m_MaxFrameCountInFlight);
 
     vk::SemaphoreCreateInfo semaphoreInfo = {};
     vk::FenceCreateInfo fenceInfo = {
         .flags = vk::FenceCreateFlagBits::eSignaled,
     };
 
-    for (size_t i = 0; i < m_MaxFrameInFlight; i++)
+    for (size_t i = 0; i < m_MaxFrameCountInFlight; i++)
     {
         Utils::VerifyResult(m_Device->createSemaphore(semaphoreInfo, nullptr),
                             STEXT("Failed to create synchronization objects for a frame!"), &m_ImageAvailableSemaphores[i]);
@@ -551,11 +549,11 @@ void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t id
 
 void VulkanRHI::DrawFrame()
 {
-    auto waitForFencesResult = m_Device->waitForFences(m_InFlightFences[m_CurrentFrame], SA_RHI_TRUE, std::numeric_limits<uint64_t>::max());
+    auto waitForFencesResult = m_Device->waitForFences(m_InFlightFences[m_CurrFrameIndex], SA_RHI_TRUE, std::numeric_limits<uint64_t>::max());
 
-    uint32_t imageIndex;
+    uint32_t imageIdx;
     Utils::VerifyResult(m_Device->acquireNextImageKHR(m_Swapchain, std::numeric_limits<uint64_t>::max(),
-                                                     m_ImageAvailableSemaphores[m_CurrentFrame], SA_RHI_NULL, &imageIndex),
+                                                     m_ImageAvailableSemaphores[m_CurrFrameIndex], SA_RHI_NULL, &imageIdx),
                         [this](auto result) {
                             if (result == vk::Result::eErrorOutOfDateKHR)
                             {
@@ -566,33 +564,32 @@ void VulkanRHI::DrawFrame()
                                 SA_LOG_ERROR(STEXT("Failed to acquire swap chain image!"));
                             }
                         });
-    //SA_LOG_DEBUG(STEXT("{}"), imageIndex);
-    UpdateUniformBuffer(imageIndex);
 
-    m_Device->resetFences(m_InFlightFences[m_CurrentFrame]);
+    m_Device->resetFences(m_InFlightFences[m_CurrFrameIndex]);
 
-    RecordCommandBuffer(m_CommandBuffers, imageIndex);
+    UpdateUniformBuffer(imageIdx);
+    RecordCommandBuffer(m_CommandBuffers, imageIdx);
 
     std::array<vk::PipelineStageFlags, 1> waitDstStageMask = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
 
     vk::SubmitInfo submitInfo = {
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &m_ImageAvailableSemaphores[m_CurrentFrame],
+        .pWaitSemaphores = &m_ImageAvailableSemaphores[m_CurrFrameIndex],
         .pWaitDstStageMask = waitDstStageMask.data(),
         .commandBufferCount = 1,
-        .pCommandBuffers = &m_CommandBuffers[imageIndex],
+        .pCommandBuffers = &m_CommandBuffers[imageIdx],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame],
+        .pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrFrameIndex],
     };
 
-    Utils::VerifyResult(m_Device.GetQueue(ERHIQueueType::Graphics).submit(submitInfo, m_InFlightFences[m_CurrentFrame]), STEXT("Failed to submit draw command buffer!"));
+    Utils::VerifyResult(m_Device.GetQueue(ERHIQueueType::Graphics).submit(submitInfo, m_InFlightFences[m_CurrFrameIndex]), STEXT("Failed to submit draw command buffer!"));
 
     vk::PresentInfoKHR presentInfo = {
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame],
+        .pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrFrameIndex],
         .swapchainCount = 1,
         .pSwapchains = &m_Swapchain.Native(),
-        .pImageIndices = &imageIndex,
+        .pImageIndices = &imageIdx,
     };
 
     Utils::VerifyResult(m_Device.GetQueue(ERHIQueueType::Present).presentKHR(presentInfo),
@@ -608,8 +605,7 @@ void VulkanRHI::DrawFrame()
                             }
                         });
 
-    //vkQueueWaitIdle(m_PresentQueue);
-    m_CurrentFrame = (m_CurrentFrame + 1) % m_MaxFrameInFlight;
+    m_CurrFrameIndex = (m_CurrFrameIndex + 1) % m_MaxFrameCountInFlight;
 }
 
 
@@ -637,50 +633,7 @@ void VulkanRHI::CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> confi
 // ==============================================
 // Tool Functions
 // ==============================================
-vk::ShaderModule VulkanRHI::CreateShaderModule(ArrayIn<char> code)
-{
-    vk::ShaderModule shaderModule;
 
-    vk::ShaderModuleCreateInfo createInfo = {
-        .codeSize = code.size(),
-        .pCode = reinterpret_cast<const uint32_t*>(code.data()),
-    };
-
-    Utils::VerifyResult(m_Device->createShaderModule(createInfo, nullptr), STEXT("Failed to create shader module!"), &shaderModule);
-
-    return shaderModule;
-}
-uint32_t VulkanRHI::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
-{
-    vk::PhysicalDeviceMemoryProperties props = m_Device.GetAdapter()->getMemoryProperties();
-    for (uint32_t i = 0; i < props.memoryTypeCount; i++)
-    {
-        if ((typeFilter & (1 << i)) && (props.memoryTypes[i].propertyFlags & properties) == properties)
-        {
-            return i;
-        }
-    }
-    SA_LOG_ERROR(STEXT("Failed to find suitable memory type!"));
-    return 0;
-}
-void VulkanRHI::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, Out<vk::Buffer> buffer, Out<vk::DeviceMemory> bufferMemory)
-{
-    vk::BufferCreateInfo bufferInfo = {
-        .size = size,
-        .usage = usage,
-        .sharingMode = vk::SharingMode::eExclusive,
-    };
-    Utils::VerifyResult(m_Device->createBuffer(bufferInfo), STEXT("Failed to create buffer!"), buffer);
-
-    vk::MemoryRequirements memRequirements;
-    m_Device->getBufferMemoryRequirements(*buffer, &memRequirements);
-    vk::MemoryAllocateInfo allocInfo = {
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
-    };
-    Utils::VerifyResult(m_Device->allocateMemory(allocInfo), STEXT("Failed to allocate vertex buffer memory!"), bufferMemory);
-    Utils::VerifyResult(m_Device->bindBufferMemory(*buffer, *bufferMemory, 0), STEXT("Failed to bind vertex buffer memory!"));
-}
 void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();

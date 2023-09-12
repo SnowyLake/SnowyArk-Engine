@@ -121,7 +121,7 @@ void VulkanInstance::CreateSurface() noexcept
     }
 }
 
-bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> inValidationLayers) noexcept
+bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> validationLayers) noexcept
 {
     bool support = true;
     Utils::VerifyResult(vk::enumerateInstanceLayerProperties(),
@@ -132,7 +132,7 @@ bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> inVal
                                 SA_LOG_ERROR(STEXT("Failed to enumerate instance layer properties!"));
                             } else
                             {
-                                for (const AnsiChar* layerName : inValidationLayers)
+                                for (const AnsiChar* layerName : validationLayers)
                                 {
                                     bool layerFound = false;
                                     for (const auto& property : properties)

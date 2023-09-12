@@ -31,9 +31,12 @@ public:
 
     void Init(ObserverHandle<OwnerType> owner, NativeType native) noexcept;
 
-    auto& Native    (this auto&& self) noexcept { return self.m_Native; }
-    auto& operator* (this auto&& self) noexcept { return self.m_Native; }
-    auto* operator->(this auto&& self) noexcept { return std::addressof(self.m_Native); }
+    auto& Native    () noexcept { return m_Native; }
+    auto& Native    () const noexcept { return m_Native; }
+    auto& operator* () noexcept { return m_Native; }
+    auto& operator* () const noexcept { return m_Native; }
+    auto* operator->() noexcept { return &m_Native; }
+    auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }

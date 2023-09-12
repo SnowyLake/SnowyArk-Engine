@@ -100,6 +100,9 @@
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanTexture.h">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanBuffer.h">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanRHI.cpp">
@@ -140,6 +143,9 @@
       <Filter>Function\Rendering\Interface</Filter>
     </ClCompile>
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanTexture.cpp">
+      <Filter>Function\Rendering\Interface\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanBuffer.cpp">
       <Filter>Function\Rendering\Interface\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>

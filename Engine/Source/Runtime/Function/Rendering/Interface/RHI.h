@@ -20,7 +20,7 @@ public:
     RHI() = default;
     ~RHI() = default;
 
-    virtual void Init(Ref<RHIConfig> config) = 0;
+    virtual void Init(In<RHIConfig> config) = 0;
     virtual void Run() = 0;
     virtual void Destory() = 0;
 

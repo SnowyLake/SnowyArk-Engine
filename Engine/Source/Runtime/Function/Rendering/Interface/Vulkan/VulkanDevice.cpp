@@ -28,8 +28,7 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
         }
     }
 
-    auto& adapter = GetAdapter();
-    auto& indices = adapter.GetQueueFamilyIndices();
+    auto& indices = GetAdapter().GetQueueFamilyIndices();
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { *indices.graphics, *indices.present };
     float queuePriority = 1.0f;
@@ -60,7 +59,7 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
         createInfo.setPEnabledLayerNames(nullptr);
     }
 
-    Utils::VerifyResult(adapter->createDevice(createInfo, nullptr), STEXT("Failed to create Logical device!"), &m_Native);
+    Utils::VerifyResult(GetAdapter()->createDevice(createInfo, nullptr), STEXT("Failed to create Logical device!"), &m_Native);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
 
@@ -78,6 +77,58 @@ void VulkanDevice::CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept
 {
     swapchain->Init(this);
     SA_LOG_INFO(STEXT("Vulkan SwapChain, Initialized."));
+}
+
+std::tuple<vk::Buffer, vk::DeviceMemory> VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
+{
+    vk::Buffer buffer;
+    vk::DeviceMemory bufferMemory;
+
+    vk::BufferCreateInfo bufferInfo = {
+        .size = size,
+        .usage = usage,
+        .sharingMode = vk::SharingMode::eExclusive,
+    };
+    Utils::VerifyResult(m_Native.createBuffer(bufferInfo), STEXT("Failed to create buffer!"), &buffer);
+
+    vk::MemoryRequirements memRequirements;
+    m_Native.getBufferMemoryRequirements(buffer, &memRequirements);
+    vk::MemoryAllocateInfo allocInfo = {
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
+    };
+    Utils::VerifyResult(m_Native.allocateMemory(allocInfo), STEXT("Failed to allocate vertex buffer memory!"), &bufferMemory);
+    Utils::VerifyResult(m_Native.bindBufferMemory(buffer, bufferMemory, 0), STEXT("Failed to bind vertex buffer memory!"));
+
+    return std::make_tuple(buffer, bufferMemory);
+}
+
+vk::ShaderModule VulkanDevice::CreateShaderModule(ArrayIn<char> code) noexcept
+{
+    vk::ShaderModule shaderModule;
+
+    vk::ShaderModuleCreateInfo createInfo = {
+        .codeSize = code.size(),
+        .pCode = reinterpret_cast<const uint32_t*>(code.data()),
+    };
+
+    Utils::VerifyResult(m_Native.createShaderModule(createInfo), STEXT("Failed to create shader module!"), &shaderModule);
+
+    return shaderModule;
+}
+
+uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) noexcept
+{
+    vk::PhysicalDeviceMemoryProperties props = m_Adapter->Native().getMemoryProperties();
+    for (uint32_t i = 0; i < props.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) && (props.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+    SA_LOG_ERROR(STEXT("Failed to find suitable memory type!"));
+    return 0;
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexcept

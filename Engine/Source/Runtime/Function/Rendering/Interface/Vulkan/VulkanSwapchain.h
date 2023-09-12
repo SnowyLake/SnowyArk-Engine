@@ -3,6 +3,7 @@
 
 namespace Snowy::Ark
 {
+using Utils = VulkanUtils;
 class VulkanDevice;
 class VulkanSwapchain
 {
@@ -14,9 +15,12 @@ public:
     void Init(ObserverHandle<OwnerType> owner) noexcept;
     void Destory() noexcept;
 
-    auto& Native    (this auto&& self) noexcept { return self.m_Native; }
-    auto& operator* (this auto&& self) noexcept { return self.m_Native; }
-    auto* operator->(this auto&& self) noexcept { return std::addressof(self.m_Native); }
+    auto& Native    () noexcept { return m_Native; }
+    auto& Native    () const noexcept { return m_Native; }
+    auto& operator* () noexcept { return m_Native; }
+    auto& operator* () const noexcept { return m_Native; }
+    auto* operator->() noexcept { return &m_Native; }
+    auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
@@ -24,11 +28,12 @@ public:
 
     vk::Format GetImageFormat() const noexcept { return m_ImageFormat; }
     vk::Extent2D GetExtent() const noexcept { return m_Extent; }
-    size_t GetImageCount() const noexcept { return m_Images.size(); }
+    Utils::NumType GetImageCount() const noexcept { return Utils::CastNumType(m_Images.size()); }
     const std::vector<vk::Image>& GetImages() const noexcept { return m_Images; }
     const std::vector<vk::ImageView>& GetImageViews() const noexcept { return m_ImageViews; }
     const vk::Image& GetImage(size_t idx) const noexcept { return m_Images[idx]; }
     const vk::ImageView& GetImageView(size_t idx) const noexcept { return m_ImageViews[idx]; }
+
     void Recreate() noexcept;
 
 private:

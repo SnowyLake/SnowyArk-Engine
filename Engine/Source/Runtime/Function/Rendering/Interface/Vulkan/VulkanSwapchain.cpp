@@ -62,8 +62,8 @@ void VulkanSwapchain::ResourceInit() noexcept
         .setClipped(SA_RHI_TRUE)
         .setOldSwapchain(SA_RHI_NULL);
 
-    Utils::VerifyResult((*m_Owner)->createSwapchainKHR(createInfo, nullptr), STEXT("Failed to create swapchain!"), &m_Native);
-    Utils::VerifyResult((*m_Owner)->getSwapchainImagesKHR(m_Native), STEXT("Failed to get swapchain images!"), &m_Images);
+    Utils::VerifyResult(m_Owner->Native().createSwapchainKHR(createInfo, nullptr), STEXT("Failed to create swapchain!"), &m_Native);
+    Utils::VerifyResult(m_Owner->Native().getSwapchainImagesKHR(m_Native), STEXT("Failed to get swapchain images!"), &m_Images);
 
     m_ImageFormat = surfaceFormat.format;
     m_Extent = extent;
@@ -85,7 +85,7 @@ void VulkanSwapchain::ResourceInit() noexcept
                 .layerCount = 1,
             },
         };
-        Utils::VerifyResult((*m_Owner)->createImageView(createInfo, nullptr),
+        Utils::VerifyResult(m_Owner->Native().createImageView(createInfo, nullptr),
                             std::format(STEXT("Failed to create swapchain image view[{}]!"), i), &m_ImageViews[i]);
     }
 }
@@ -94,9 +94,9 @@ void VulkanSwapchain::Destory() noexcept
 {
     for (auto&& imageView : m_ImageViews)
     {
-        (*m_Owner)->destroyImageView(imageView);
+        m_Owner->Native().destroyImageView(imageView);
     }
-    (*m_Owner)->destroySwapchainKHR(m_Native);
+    m_Owner->Native().destroySwapchainKHR(m_Native);
 }
 
 vk::SurfaceFormatKHR VulkanSwapchain::ChooseSwapChainFormat(ArrayIn<vk::SurfaceFormatKHR> availableFormats) noexcept

@@ -15,9 +15,12 @@ public:
     void Init(ObserverHandle<OwnerType> owner) noexcept; 
     void Destroy() noexcept;
 
-    auto& Native    (this auto&& self) noexcept { return self.m_Native; }
-    auto& operator* (this auto&& self) noexcept { return self.m_Native; }
-    auto* operator->(this auto&& self) noexcept { return &(self.m_Native); }
+    auto& Native    () noexcept { return m_Native; }
+    auto& Native    () const noexcept { return m_Native; }
+    auto& operator* () noexcept { return m_Native; }
+    auto& operator* () const noexcept { return m_Native; }
+    auto* operator->() noexcept { return &m_Native; }
+    auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
     ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
@@ -29,6 +32,10 @@ public:
     std::vector<const AnsiChar*>& RequiredExtensions() noexcept { return m_RequiredExtensions; }
 
     void CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept;
+    std::tuple<vk::Buffer, vk::DeviceMemory> CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
+    vk::ShaderModule CreateShaderModule(ArrayIn<char> code) noexcept;
+
+    uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) noexcept;
 
 private:
     bool CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexcept;

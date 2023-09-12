@@ -44,12 +44,13 @@ void VulkanAdapter::QueryQueueFamilyIndices() noexcept
 SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const
 {
     SwapchainSupportDetails details;
+    auto&& surface = m_Owner->GetSurface();
     // 查询基础表面特性
-    Utils::VerifyResult(m_Native.getSurfaceCapabilitiesKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface Capabilities!"), &details.capabilities);
+    Utils::VerifyResult(m_Native.getSurfaceCapabilitiesKHR(surface), STEXT("Failed to get Surface Capabilities!"), &details.capabilities);
     // 查询表面支持格式
-    Utils::VerifyResult(m_Native.getSurfaceFormatsKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface Formats!"), &details.formats);
+    Utils::VerifyResult(m_Native.getSurfaceFormatsKHR(surface), STEXT("Failed to get Surface Formats!"), &details.formats);
     // 查询支持的呈现方式
-    Utils::VerifyResult(m_Native.getSurfacePresentModesKHR(m_Owner->GetSurface()), STEXT("Failed to get Surface PresentModes!"), &details.presentModes);
+    Utils::VerifyResult(m_Native.getSurfacePresentModesKHR(surface), STEXT("Failed to get Surface PresentModes!"), &details.presentModes);
     return details;
 }
 }
