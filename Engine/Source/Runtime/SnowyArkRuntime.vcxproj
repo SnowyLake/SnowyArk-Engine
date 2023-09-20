@@ -172,6 +172,7 @@
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanTexture.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanUtils.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanRHI.h" />
+    <ClInclude Include="Function\Rendering\Mesh.h" />
     <ClInclude Include="Function\Rendering\RenderSystem.h" />
     <ClInclude Include="Function\Window\WindowSystem.h" />
     <ClInclude Include="Platform\FileSystem.h" />

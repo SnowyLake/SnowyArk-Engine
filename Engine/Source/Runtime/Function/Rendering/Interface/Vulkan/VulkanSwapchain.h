@@ -12,6 +12,13 @@ public:
     using OwnerType  = VulkanDevice;
 
 public:
+    VulkanSwapchain() = default;
+    ~VulkanSwapchain() = default;
+    VulkanSwapchain(const VulkanSwapchain&) = default;
+    VulkanSwapchain(VulkanSwapchain&&) = default;
+    VulkanSwapchain& operator=(const VulkanSwapchain&) = default;
+    VulkanSwapchain& operator=(VulkanSwapchain&&) = default;
+
     void Init(ObserverHandle<OwnerType> owner) noexcept;
     void Destory() noexcept;
 
@@ -23,16 +30,16 @@ public:
     auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
-    ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
-    ObserverHandle<VulkanRHI> GetContext() const noexcept { return m_Ctx; }
+    ObserverHandle<OwnerType> Owner() const noexcept { return m_Owner; }
+    ObserverHandle<VulkanRHI> Context() const noexcept { return m_Ctx; }
 
-    vk::Format GetImageFormat() const noexcept { return m_ImageFormat; }
-    vk::Extent2D GetExtent() const noexcept { return m_Extent; }
-    Utils::NumType GetImageCount() const noexcept { return Utils::CastNumType(m_Images.size()); }
-    const std::vector<vk::Image>& GetImages() const noexcept { return m_Images; }
-    const std::vector<vk::ImageView>& GetImageViews() const noexcept { return m_ImageViews; }
-    const vk::Image& GetImage(size_t idx) const noexcept { return m_Images[idx]; }
-    const vk::ImageView& GetImageView(size_t idx) const noexcept { return m_ImageViews[idx]; }
+    vk::Format ImageFormat() const noexcept { return m_ImageFormat; }
+    vk::Extent2D Extent() const noexcept { return m_Extent; }
+    Utils::NumType ImageCount() const noexcept { return Utils::CastNumType(m_Images.size()); }
+    const std::vector<vk::Image>& Images() const noexcept { return m_Images; }
+    const std::vector<vk::ImageView>& ImageViews() const noexcept { return m_ImageViews; }
+    const vk::Image& Image(size_t idx) const noexcept { return m_Images[idx]; }
+    const vk::ImageView& ImageView(size_t idx) const noexcept { return m_ImageViews[idx]; }
 
     void Recreate() noexcept;
 

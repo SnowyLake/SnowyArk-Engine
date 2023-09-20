@@ -29,6 +29,13 @@ public:
     using NativeType = vk::PhysicalDevice;
     using OwnerType  = VulkanInstance;
 
+    VulkanAdapter() = default;
+    ~VulkanAdapter() = default;
+    VulkanAdapter(const VulkanAdapter&) = default;
+    VulkanAdapter(VulkanAdapter&&) = default;
+    VulkanAdapter& operator=(const VulkanAdapter&) = default;
+    VulkanAdapter& operator=(VulkanAdapter&&) = default;
+
     void Init(ObserverHandle<OwnerType> owner, NativeType native) noexcept;
 
     auto& Native    () noexcept { return m_Native; }
@@ -39,11 +46,11 @@ public:
     auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
-    ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
-    ObserverHandle<VulkanRHI> GetContext() const noexcept { return m_Ctx; }
+    ObserverHandle<OwnerType> Owner() const noexcept { return m_Owner; }
+    ObserverHandle<VulkanRHI> Context() const noexcept { return m_Ctx; }
 
-    auto& GetProperties(this auto&& self) noexcept { return self.m_Properties.properties; }
-    auto& GetProperties2(this auto&& self) noexcept { return self.m_Properties; }
+    auto& Properties(this auto&& self) noexcept { return self.m_Properties.properties; }
+    auto& Properties2(this auto&& self) noexcept { return self.m_Properties; }
     auto& GetQueueFamilyIndices(this auto&& self) noexcept { return self.m_QueueFamilyIndices; }
 
     SwapchainSupportDetails QuerySwapchainSupportDetails() const;

@@ -7,7 +7,7 @@ namespace Snowy::Ark
 void VulkanBuffer::Init(ObserverHandle<OwnerType> owner, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
 {
     m_Owner = owner;
-    m_Ctx = owner->GetContext();
+    m_Ctx = owner->Context();
 
 
     vk::BufferCreateInfo bufferInfo = {
@@ -28,6 +28,7 @@ void VulkanBuffer::Init(ObserverHandle<OwnerType> owner, vk::DeviceSize size, vk
 }
 void VulkanBuffer::Destroy()
 {
-
+    m_Owner->Native().destroyBuffer(m_Native);
+    m_Owner->Native().freeMemory(m_Memory);
 }
 }

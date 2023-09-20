@@ -2,6 +2,7 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanUtils.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanAdapter.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanSwapchain.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanBuffer.h"
 
 namespace Snowy::Ark
 {
@@ -12,6 +13,13 @@ public:
     using NativeType = vk::Device;
     using OwnerType  = VulkanInstance;
 public:
+    VulkanDevice() = default;
+    ~VulkanDevice() = default;
+    VulkanDevice(const VulkanDevice&) = default;
+    VulkanDevice(VulkanDevice&&) = default;
+    VulkanDevice& operator=(const VulkanDevice&) = default;
+    VulkanDevice& operator=(VulkanDevice&&) = default;
+
     void Init(ObserverHandle<OwnerType> owner) noexcept; 
     void Destroy() noexcept;
 
@@ -23,16 +31,18 @@ public:
     auto* operator->() const noexcept { return &m_Native; }
     operator NativeType() const noexcept { return m_Native; }
     operator NativeType::NativeType() const noexcept { return m_Native; }
-    ObserverHandle<OwnerType> GetOwner() const noexcept { return m_Owner; }
-    ObserverHandle<VulkanRHI> GetContext() const noexcept { return m_Ctx; }
+    ObserverHandle<OwnerType> Owner() const noexcept { return m_Owner; }
+    ObserverHandle<VulkanRHI> Context() const noexcept { return m_Ctx; }
 
-    VulkanAdapter& GetAdapter() const noexcept { return *m_Adapter; }
-    vk::Queue& GetQueue(ERHIQueueType type) { return m_Queues[static_cast<size_t>(type)]; }
-    std::vector<const AnsiChar*>& ValidationLayers() noexcept { return m_ValidationLayers; }
+    VulkanAdapter& Adapter() const noexcept { return *m_Adapter; }
+    vk::Queue& Queue(ERHIQueue type) { return m_Queues[static_cast<size_t>(type)]; }
     std::vector<const AnsiChar*>& RequiredExtensions() noexcept { return m_RequiredExtensions; }
 
-    void CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept;
-    std::tuple<vk::Buffer, vk::DeviceMemory> CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
+    VulkanSwapchain CreateSwapchain() noexcept;
+
+    std::tuple<vk::Buffer, vk::DeviceMemory> CreateBufferRaw(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
+    VulkanBuffer CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
+
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code) noexcept;
 
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) noexcept;
@@ -49,7 +59,6 @@ private:
     ObserverHandle<VulkanAdapter> m_Adapter;
     std::vector<vk::Queue> m_Queues;
 
-    std::vector<const AnsiChar*> m_ValidationLayers;
     std::vector<const AnsiChar*> m_RequiredExtensions;
 };
 }

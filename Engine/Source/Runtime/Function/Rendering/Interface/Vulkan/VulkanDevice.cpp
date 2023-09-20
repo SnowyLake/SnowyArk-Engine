@@ -8,27 +8,27 @@ using Utils = VulkanUtils;
 void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
 {
     m_Owner = owner;
-    m_Ctx = m_Owner->GetContext();
+    m_Ctx = m_Owner->Context();
 
-    m_Adapter = m_Owner->GetAdapter(0);
+    m_Adapter = m_Owner->Adapter(0);
     if (!IsDeviceSuitable(*m_Adapter))
     {
-        for (uint32_t i = 1; i < m_Owner->GetAdapterCount(); i++)
+        for (uint32_t i = 1; i < m_Owner->AdapterCount(); i++)
         {
-            auto tempAdapter = m_Owner->GetAdapter(i);
+            auto tempAdapter = m_Owner->Adapter(i);
             if (IsDeviceSuitable(*tempAdapter))
             {
                 m_Adapter = tempAdapter;
                 break;
             }
         }
-        if (m_Adapter == m_Owner->GetAdapter(0))
+        if (m_Adapter == m_Owner->Adapter(0))
         {
             SA_LOG_ERROR(STEXT("Failed to find a suitable GPU!"));
         }
     }
 
-    auto& indices = GetAdapter().GetQueueFamilyIndices();
+    auto& indices = Adapter().GetQueueFamilyIndices();
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { *indices.graphics, *indices.present };
     float queuePriority = 1.0f;
@@ -53,19 +53,19 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
     };
     if (m_Owner->EnableValidationLayers())
     {
-        createInfo.setPEnabledLayerNames(m_ValidationLayers);
+        createInfo.setPEnabledLayerNames(m_Owner->ValidationLayers());
     } else
     {
         createInfo.setPEnabledLayerNames(nullptr);
     }
 
-    Utils::VerifyResult(GetAdapter()->createDevice(createInfo, nullptr), STEXT("Failed to create Logical device!"), &m_Native);
+    Utils::VerifyResult(Adapter()->createDevice(createInfo, nullptr), STEXT("Failed to create Logical device!"), &m_Native);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
 
     m_Queues.resize(2);
-    m_Queues[Utils::CastNumType(ERHIQueueType::Present)] = m_Native.getQueue(indices.present.value(), 0);
-    m_Queues[Utils::CastNumType(ERHIQueueType::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
+    m_Queues[Utils::CastNumType(ERHIQueue::Present)] = m_Native.getQueue(indices.present.value(), 0);
+    m_Queues[Utils::CastNumType(ERHIQueue::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
 }
 
 void VulkanDevice::Destroy() noexcept
@@ -73,13 +73,15 @@ void VulkanDevice::Destroy() noexcept
     m_Native.destroy();
 }
 
-void VulkanDevice::CreateSwapchain(Out<VulkanSwapchain> swapchain) noexcept
+VulkanSwapchain VulkanDevice::CreateSwapchain() noexcept
 {
-    swapchain->Init(this);
+    VulkanSwapchain swapchain;
+    swapchain.Init(this);
     SA_LOG_INFO(STEXT("Vulkan SwapChain, Initialized."));
+    return swapchain;
 }
 
-std::tuple<vk::Buffer, vk::DeviceMemory> VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
+std::tuple<vk::Buffer, vk::DeviceMemory> VulkanDevice::CreateBufferRaw(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
 {
     vk::Buffer buffer;
     vk::DeviceMemory bufferMemory;
@@ -101,6 +103,13 @@ std::tuple<vk::Buffer, vk::DeviceMemory> VulkanDevice::CreateBuffer(vk::DeviceSi
     Utils::VerifyResult(m_Native.bindBufferMemory(buffer, bufferMemory, 0), STEXT("Failed to bind vertex buffer memory!"));
 
     return std::make_tuple(buffer, bufferMemory);
+}
+
+VulkanBuffer VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
+{
+    VulkanBuffer buffer = {};
+    buffer.Init(this, size, usage, properties);
+    return buffer;
 }
 
 vk::ShaderModule VulkanDevice::CreateShaderModule(ArrayIn<char> code) noexcept

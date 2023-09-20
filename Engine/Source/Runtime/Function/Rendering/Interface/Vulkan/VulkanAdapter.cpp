@@ -8,7 +8,7 @@ void VulkanAdapter::Init(ObserverHandle<OwnerType> owner, NativeType native) noe
 {
     m_Native = native;
     m_Owner = owner;
-    m_Ctx = m_Owner->GetContext();
+    m_Ctx = m_Owner->Context();
 }
 
 void VulkanAdapter::QueryProperties() noexcept
@@ -27,7 +27,7 @@ void VulkanAdapter::QueryQueueFamilyIndices() noexcept
             m_QueueFamilyIndices.graphics = idx;
         }
 
-        vk::Bool32 presentSupport = m_Native.getSurfaceSupportKHR(idx, m_Owner->GetSurface()).value;
+        vk::Bool32 presentSupport = m_Native.getSurfaceSupportKHR(idx, m_Owner->Surface()).value;
         if (queueFamily.queueCount > 0 && presentSupport)
         {
             m_QueueFamilyIndices.present = idx;
@@ -44,7 +44,7 @@ void VulkanAdapter::QueryQueueFamilyIndices() noexcept
 SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const
 {
     SwapchainSupportDetails details;
-    auto&& surface = m_Owner->GetSurface();
+    auto&& surface = m_Owner->Surface();
     // 查询基础表面特性
     Utils::VerifyResult(m_Native.getSurfaceCapabilitiesKHR(surface), STEXT("Failed to get Surface Capabilities!"), &details.capabilities);
     // 查询表面支持格式

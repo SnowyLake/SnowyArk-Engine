@@ -28,7 +28,7 @@ struct RHIConfig
 {
     ERHIBackend           backend          = ERHIBackend::Vulkan;
     RawHandle<GLFWwindow> windowHandle     = nullptr;
-    uint32_t              maxFrameInFlight = 2;
+    uint32_t              frameCountInFlight = 2;
 
     // Vulkan Context Config
     bool vkEnableValidationLayers = true;

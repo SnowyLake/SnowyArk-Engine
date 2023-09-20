@@ -12,7 +12,7 @@ using Utils = VulkanUtils;
 void VulkanSwapchain::Init(ObserverHandle<OwnerType> owner) noexcept
 {
     m_Owner = owner;
-    m_Ctx = m_Owner->GetContext();
+    m_Ctx = m_Owner->Context();
     ResourceInit();
 };
 
@@ -23,7 +23,7 @@ void VulkanSwapchain::Recreate() noexcept
 
 void VulkanSwapchain::ResourceInit() noexcept
 {
-    auto swapchainSupport = m_Owner->GetAdapter().QuerySwapchainSupportDetails();
+    auto swapchainSupport = m_Owner->Adapter().QuerySwapchainSupportDetails();
     vk::SurfaceFormatKHR surfaceFormat  = ChooseSwapChainFormat(swapchainSupport.formats);
     vk::PresentModeKHR   presentMode    = ChooseSwapPresentMode(swapchainSupport.presentModes);
     vk::Extent2D         extent         = ChooseSwapExtent(swapchainSupport.capabilities);
@@ -35,7 +35,7 @@ void VulkanSwapchain::ResourceInit() noexcept
     }
 
     vk::SwapchainCreateInfoKHR createInfo = {
-        .surface = m_Owner->GetOwner()->GetSurface(),
+        .surface = m_Owner->Owner()->Surface(),
         .minImageCount = imageCount,
         .imageFormat = surfaceFormat.format,
         .imageColorSpace = surfaceFormat.colorSpace,
@@ -44,7 +44,7 @@ void VulkanSwapchain::ResourceInit() noexcept
         .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
     };
 
-    QueueFamilyIndices indices = m_Owner->GetAdapter().GetQueueFamilyIndices();
+    QueueFamilyIndices indices = m_Owner->Adapter().GetQueueFamilyIndices();
     std::array<uint32_t, 2> queueFamilyIndices = { *indices.graphics, *indices.present };
     if (*indices.graphics != *indices.present)
     {

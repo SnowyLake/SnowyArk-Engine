@@ -19,10 +19,10 @@ concept IsVerifyFunc = requires(R result, V verifyFunc)
 // Forward Declare
 class VulkanRHI;
 
-// Vulkan Utils
 class VulkanUtils
 {
 public:
+    using NumType = uint32_t;    // Vulkan Number Type
 
 public:
     /*----------------------------------------------------------*/
@@ -65,18 +65,17 @@ public:
         verifyFunc(result);
     }
 
-    // Vulkan Number Type
-    using NumType = uint32_t;
-    template<typename T>
-        requires std::is_integral_v<T> || std::is_enum_v<T>
-    static NumType CastNumType(T num) 
-    { 
-        return static_cast<VulkanUtils::NumType>(num);
-    }
 
     /*----------------------------------------------------------*/
     // Vulkan Tool Functions
     /*----------------------------------------------------------*/
     static void CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
+
+    template<typename T>
+        requires std::is_integral_v<T> || std::is_enum_v<T>
+    static NumType CastNumType(T num) 
+    { 
+        return static_cast<NumType>(num);
+    }
 };
 }

@@ -18,12 +18,17 @@ class RHI
 {
 public:
     RHI() = default;
-    ~RHI() = default;
+    virtual ~RHI() = default;
+    RHI(const RHI&) = default;
+    RHI(RHI&&) = default;
+    RHI& operator=(const RHI&) = default;
+    RHI& operator=(RHI&&) = default;
 
     virtual void Init(In<RHIConfig> config) = 0;
     virtual void Run() = 0;
     virtual void Destory() = 0;
 
+public:
     static SharedHandle<RHI> CreateRHI(ERHIBackend backend);
     static void DestroyRHI(SharedHandle<RHI> rhi);
 };

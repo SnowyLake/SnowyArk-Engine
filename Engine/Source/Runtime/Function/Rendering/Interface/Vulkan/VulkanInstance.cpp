@@ -65,12 +65,13 @@ void VulkanInstance::Destroy() noexcept
     m_Native.destroy();
 }
 
-void VulkanInstance::CreateDevice(Out<VulkanDevice> device) noexcept
+VulkanDevice VulkanInstance::CreateDevice() noexcept
 {
-    device->ValidationLayers().append_range(m_ValidationLayers);
-    device->RequiredExtensions().append_range(m_RequiredDeviceExtensions);
-    device->Init(this);
+    VulkanDevice device;
+    device.RequiredExtensions().append_range(m_RequiredDeviceExtensions);
+    device.Init(this);
     SA_LOG_INFO(STEXT("Vulkan Device Initialized."));
+    return device;
 }
 
 void VulkanInstance::CollectAdapters() noexcept
@@ -115,7 +116,7 @@ void VulkanInstance::SetupDebugCallback() noexcept
 
 void VulkanInstance::CreateSurface() noexcept
 {
-    if (glfwCreateWindowSurface(m_Native, m_Ctx->GetWindowHandle(), nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(m_Native, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
         SA_LOG_ERROR(STEXT("Failed to create vulkan surface!"));
     }

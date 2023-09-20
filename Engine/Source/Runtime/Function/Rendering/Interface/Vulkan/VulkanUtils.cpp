@@ -10,7 +10,7 @@ void VulkanUtils::CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer
 {
     auto& device = ctx->Device();
     auto& cmdPool = ctx->CommandPool();
-    auto& submitQueue = ctx->GraphicsQueue();
+    auto& queue = ctx->GraphicsQueue();
 
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = cmdPool,
@@ -54,8 +54,8 @@ void VulkanUtils::CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer
         .commandBufferCount = 1,
         .pCommandBuffers = &cmd,
     };
-    VerifyResult(submitQueue.submit(submitInfo), STEXT("Failed to submit copybuffer command!"));
-    submitQueue.waitIdle();
+    VerifyResult(queue.submit(submitInfo), STEXT("Failed to submit copybuffer command!"));
+    queue.waitIdle();
     device.freeCommandBuffers(cmdPool, cmd);
 }
 }

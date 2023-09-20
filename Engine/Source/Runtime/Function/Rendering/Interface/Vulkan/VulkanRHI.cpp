@@ -26,12 +26,9 @@ void VulkanRHI::Run()
 
 void VulkanRHI::Init_Internal(In<RHIConfig> config)
 {
-    m_WindowHandle = config.windowHandle;
-    m_MaxFrameCountInFlight = config.maxFrameInFlight;
-
     CreateInstance(&m_Instance, config);
-    m_Instance.CreateDevice(&m_Device);
-    m_Device.CreateSwapchain(&m_Swapchain);
+    m_Device = m_Instance.CreateDevice();
+    m_Swapchain = m_Device.CreateSwapchain();
 }
 
 void VulkanRHI::PostInit_Internal()
@@ -63,18 +60,14 @@ void VulkanRHI::Destory()
     m_Device->destroyDescriptorSetLayout(m_DescriptorSetLayout);
     m_Device->destroyDescriptorPool(m_DescriptorPool);
 
-    m_Device->destroyBuffer(m_VertexBuffer);
-    m_Device->freeMemory(m_VertexBufferMemory);
-    m_Device->destroyBuffer(m_IndexBuffer);
-    m_Device->freeMemory(m_IndexBufferMemory);
-
-    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
+    m_VertexBuffer.Destroy();
+    m_IndexBuffer.Destroy();
+    for (size_t i = 0; i < m_Swapchain.ImageCount(); i++)
     {
-        m_Device->destroyBuffer(m_UniformBuffers[i]);
-        m_Device->freeMemory(m_UniformBuffersMemory[i]);
+        m_UniformBuffers[i].Destroy();
     }
 
-    for (size_t i = 0; i < m_MaxFrameCountInFlight; i++)
+    for (size_t i = 0; i < m_Instance.GetFrameCountInFlight(); i++)
     {
         m_Device->destroySemaphore(m_ImageAvailableSemaphores[i]);
         m_Device->destroySemaphore(m_RenderFinishedSemaphores[i]);
@@ -161,12 +154,12 @@ void VulkanRHI::CreateGraphicsPipeline()
 
     std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
 
-    auto bindingDescription = TempVertex::GetBindingDescription();
-    auto attributeDescriptions = TempVertex::GetAttributeDescriptions();
+    auto bindingDescription = SimpleVertex::GetBindingDescription();
+    auto attributeDescriptions = SimpleVertex::GetAttributeDescriptions();
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &bindingDescription,
-        .vertexAttributeDescriptionCount = static_cast<int32_t>(attributeDescriptions.size()),
+        .vertexAttributeDescriptionCount = Utils::CastNumType(attributeDescriptions.size()),
         .pVertexAttributeDescriptions = attributeDescriptions.data(),
     };
 
@@ -178,15 +171,15 @@ void VulkanRHI::CreateGraphicsPipeline()
     vk::Viewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
-        .width = static_cast<float>(m_Swapchain.GetExtent().width),
-        .height = static_cast<float>(m_Swapchain.GetExtent().height),
+        .width = static_cast<float>(m_Swapchain.Extent().width),
+        .height = static_cast<float>(m_Swapchain.Extent().height),
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
 
     vk::Rect2D scissor = {
         .offset = {0, 0},
-        .extent = m_Swapchain.GetExtent(),
+        .extent = m_Swapchain.Extent(),
     };
 
     vk::PipelineViewportStateCreateInfo viewportState = {
@@ -281,7 +274,7 @@ void VulkanRHI::CreateRenderPass()
 {
     vk::AttachmentDescription colorAttachmentDesc = {
         .flags = vk::AttachmentDescriptionFlags{},
-        .format = m_Swapchain.GetImageFormat(),
+        .format = m_Swapchain.ImageFormat(),
         .samples = vk::SampleCountFlagBits::e1,
         .loadOp = vk::AttachmentLoadOp::eClear,
         .storeOp = vk::AttachmentStoreOp::eStore,
@@ -321,32 +314,32 @@ void VulkanRHI::CreateRenderPass()
     };
 
     Utils::VerifyResult(m_Device->createRenderPass(renderPassInfo, nullptr), STEXT("Failed to create render pass!"), &m_RenderPass);
-    SA_LOG_INFO(STEXT("Create Render Pass, Complete."))
+    SA_LOG_INFO(STEXT("Create Render Pass, Complete."));
 }
 void VulkanRHI::CreateFramebuffers()
 {
-    m_SwapChainFramebuffers.resize(m_Swapchain.GetImageCount());
-    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
+    m_SwapChainFramebuffers.resize(m_Swapchain.ImageCount());
+    for (size_t i = 0; i < m_Swapchain.ImageCount(); i++)
     {
-        std::array<vk::ImageView, 1> attachments{ m_Swapchain.GetImageView(i) };
+        std::array<vk::ImageView, 1> attachments{ m_Swapchain.ImageView(i) };
 
         vk::FramebufferCreateInfo framebufferInfo = {
             .renderPass = m_RenderPass,
             .attachmentCount = Utils::CastNumType(attachments.size()),
             .pAttachments = attachments.data(),
-            .width = m_Swapchain.GetExtent().width,
-            .height = m_Swapchain.GetExtent().height,
+            .width = m_Swapchain.Extent().width,
+            .height = m_Swapchain.Extent().height,
             .layers = 1,
         };
 
         Utils::VerifyResult(m_Device->createFramebuffer(framebufferInfo, nullptr),
                             std::format(STEXT("Failed to create framebuffer[{}]!"), i), &m_SwapChainFramebuffers[i]);
     }
-    SA_LOG_INFO(STEXT("Create Framebuffers, Complete."))
+    SA_LOG_INFO(STEXT("Create Framebuffers, Complete."));
 }
 void VulkanRHI::CreateCommandPool()
 {
-    auto& queueFamilyIndices = m_Device.GetAdapter().GetQueueFamilyIndices();
+    auto& queueFamilyIndices = m_Device.Adapter().GetQueueFamilyIndices();
 
     vk::CommandPoolCreateInfo createInfo = {
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -354,7 +347,7 @@ void VulkanRHI::CreateCommandPool()
     };
 
     Utils::VerifyResult(m_Device->createCommandPool(createInfo, nullptr), STEXT("Failed to create command pool!"), &m_CommandPool);
-    SA_LOG_INFO(STEXT("Create Command Pool, Complete."))
+    SA_LOG_INFO(STEXT("Create Command Pool, Complete."));
 }
 void VulkanRHI::CreateCommandBuffers()
 {
@@ -366,78 +359,62 @@ void VulkanRHI::CreateCommandBuffers()
         .commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size()),
     };
     Utils::VerifyResult(m_Device->allocateCommandBuffers(allocInfo), STEXT("Failed to allocate command buffers!"), &m_CommandBuffers);
-    SA_LOG_INFO(STEXT("Create Command Buffers, Complete."))
+    SA_LOG_INFO(STEXT("Create Command Buffers, Complete."));
 }
 
-void VulkanRHI::CreateVertexBuffer(ArrayIn<TempVertex> triangleVertices)
+void VulkanRHI::CreateVertexBuffer(ArrayIn<SimpleVertex> triangleVertices)
 {
-
     vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleVertices)::value_type) * triangleVertices.size();
 
-    auto [stagingBuffer, stagingBufferMemory] 
-        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
+    auto stagingBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer.Memory(), 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
     memcpy(data, triangleVertices.data(), (size_t)bufferSize);
-    m_Device->unmapMemory(stagingBufferMemory);
+    m_Device->unmapMemory(stagingBuffer.Memory());
 
-    std::tie(m_VertexBuffer, m_VertexBufferMemory) 
-        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, 
-                                vk::MemoryPropertyFlagBits::eDeviceLocal);
+    m_VertexBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     Utils::CopyBuffer(this, stagingBuffer, m_VertexBuffer, bufferSize);
 
-    m_Device->destroyBuffer(stagingBuffer);
-    m_Device->freeMemory(stagingBufferMemory);
+    stagingBuffer.Destroy();
 }
 
 void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 {
     vk::DeviceSize bufferSize = sizeof(SDecayOf(triangleIndices)::value_type) * triangleIndices.size();
 
-    auto [stagingBuffer, stagingBufferMemory] 
-        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
+    auto stagingBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(stagingBufferMemory, 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer.Memory(), 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
     memcpy(data, triangleIndices.data(), (size_t)bufferSize);
-    m_Device->unmapMemory(stagingBufferMemory);
+    m_Device->unmapMemory(stagingBuffer.Memory());
 
-    std::tie(m_IndexBuffer, m_IndexBufferMemory)
-        = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
-                                vk::MemoryPropertyFlagBits::eDeviceLocal);
+    m_IndexBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     Utils::CopyBuffer(this, stagingBuffer, m_IndexBuffer, bufferSize);
 
-    m_Device->destroyBuffer(stagingBuffer);
-    m_Device->freeMemory(stagingBufferMemory);
+    stagingBuffer.Destroy();
 }
 
 void VulkanRHI::CreateUniformBuffer()
 {
-    vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
-    size_t bufferCount = m_Swapchain.GetImageCount();
+    vk::DeviceSize bufferSize = sizeof(SACommonMatrices);
+    size_t bufferCount = m_Swapchain.ImageCount();
     m_UniformBuffers.resize(bufferCount);
-    m_UniformBuffersMemory.resize(bufferCount);
 
     for (size_t i = 0; i < bufferCount; i++)
     {
-        std::tie(m_UniformBuffers[i], m_UniformBuffersMemory[i]) 
-            = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
-                                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        m_UniformBuffers[i] = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     }
 }
 
 void VulkanRHI::CreateDescriptorPool()
 {
     vk::DescriptorPoolSize poolSize = {
-        .descriptorCount = m_Swapchain.GetImageCount(),
+        .descriptorCount = m_Swapchain.ImageCount(),
     };
     vk::DescriptorPoolCreateInfo poolInfo = {
-        .maxSets = m_Swapchain.GetImageCount(),
+        .maxSets = m_Swapchain.ImageCount(),
         .poolSizeCount = 1,
         .pPoolSizes = &poolSize,
     };
@@ -446,20 +423,20 @@ void VulkanRHI::CreateDescriptorPool()
 
 void VulkanRHI::CreateDescriptorSets()
 {
-    std::vector<vk::DescriptorSetLayout> layouts(m_Swapchain.GetImageCount(), m_DescriptorSetLayout);
+    std::vector<vk::DescriptorSetLayout> layouts(m_Swapchain.ImageCount(), m_DescriptorSetLayout);
     vk::DescriptorSetAllocateInfo allocInfo = {
         .descriptorPool = m_DescriptorPool,
-        .descriptorSetCount = Utils::CastNumType(m_Swapchain.GetImageCount()),
+        .descriptorSetCount = Utils::CastNumType(m_Swapchain.ImageCount()),
         .pSetLayouts = layouts.data(),
     };
-    m_DescriptorSets.resize(m_Swapchain.GetImageCount());
+    m_DescriptorSets.resize(m_Swapchain.ImageCount());
     Utils::VerifyResult(m_Device->allocateDescriptorSets(allocInfo), STEXT("Failed to alloc descriptor set!"), &m_DescriptorSets);
-    for (size_t i = 0; i < m_Swapchain.GetImageCount(); i++)
+    for (size_t i = 0; i < m_Swapchain.ImageCount(); i++)
     {
         vk::DescriptorBufferInfo bufferInfo = {
             .buffer = m_UniformBuffers[i],
             .offset = 0,
-            .range = sizeof(UniformBufferObject),
+            .range = sizeof(SACommonMatrices),
         };
         vk::WriteDescriptorSet descriptorWrite = {
             .dstSet = m_DescriptorSets[i],
@@ -473,21 +450,22 @@ void VulkanRHI::CreateDescriptorSets()
         };
         m_Device->updateDescriptorSets(descriptorWrite, nullptr);
     }
-    SA_LOG_INFO(STEXT("Create Descriptor Sets, Complete."))
+    SA_LOG_INFO(STEXT("Create Descriptor Sets, Complete."));
 }
 
 void VulkanRHI::CreateSyncObjects()
 {
-    m_ImageAvailableSemaphores.resize(m_MaxFrameCountInFlight);
-    m_RenderFinishedSemaphores.resize(m_MaxFrameCountInFlight);
-    m_InFlightFences.resize(m_MaxFrameCountInFlight);
+    auto frameCount = m_Instance.GetFrameCountInFlight();
+    m_ImageAvailableSemaphores.resize(frameCount);
+    m_RenderFinishedSemaphores.resize(frameCount);
+    m_InFlightFences.resize(frameCount);
 
     vk::SemaphoreCreateInfo semaphoreInfo = {};
     vk::FenceCreateInfo fenceInfo = {
         .flags = vk::FenceCreateFlagBits::eSignaled,
     };
 
-    for (size_t i = 0; i < m_MaxFrameCountInFlight; i++)
+    for (size_t i = 0; i < frameCount; i++)
     {
         Utils::VerifyResult(m_Device->createSemaphore(semaphoreInfo, nullptr),
                             STEXT("Failed to create synchronization objects for a frame!"), &m_ImageAvailableSemaphores[i]);
@@ -523,7 +501,7 @@ void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t id
                                     .framebuffer = m_SwapChainFramebuffers[idx],
                                     .renderArea = vk::Rect2D {
                                         .offset = {0, 0},
-                                        .extent = m_Swapchain.GetExtent(),
+                                        .extent = m_Swapchain.Extent(),
                                     },
                                     .clearValueCount = static_cast<uint32_t>(clearValues.size()),
                                     .pClearValues = clearValues.data(),
@@ -582,7 +560,7 @@ void VulkanRHI::DrawFrame()
         .pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrFrameIndex],
     };
 
-    Utils::VerifyResult(m_Device.GetQueue(ERHIQueueType::Graphics).submit(submitInfo, m_InFlightFences[m_CurrFrameIndex]), STEXT("Failed to submit draw command buffer!"));
+    Utils::VerifyResult(m_Device.Queue(ERHIQueue::Graphics).submit(submitInfo, m_InFlightFences[m_CurrFrameIndex]), STEXT("Failed to submit draw command buffer!"));
 
     vk::PresentInfoKHR presentInfo = {
         .waitSemaphoreCount = 1,
@@ -592,7 +570,7 @@ void VulkanRHI::DrawFrame()
         .pImageIndices = &imageIdx,
     };
 
-    Utils::VerifyResult(m_Device.GetQueue(ERHIQueueType::Present).presentKHR(presentInfo),
+    Utils::VerifyResult(m_Device.Queue(ERHIQueue::Present).presentKHR(presentInfo),
                         [this](auto result) {
                             SharedHandle windowSys = g_GlobalContext.windowSys;
                             if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR || windowSys->IsFramebufferResized())
@@ -605,12 +583,14 @@ void VulkanRHI::DrawFrame()
                             }
                         });
 
-    m_CurrFrameIndex = (m_CurrFrameIndex + 1) % m_MaxFrameCountInFlight;
+    m_CurrFrameIndex = (m_CurrFrameIndex + 1) % m_Instance.GetFrameCountInFlight();
 }
 
 
 void VulkanRHI::CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> config) noexcept
 {
+    instance->SetWindowHandle(config.windowHandle);
+    instance->SetFrameCountInFlight(config.frameCountInFlight);
 #ifdef NDEBUG
     instance->EnableValidationLayers() = false;
 #else
@@ -640,16 +620,15 @@ void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float>(currentTime - startTime).count();
 
-    UniformBufferObject ubo = {};
-    ubo.modelMatrix = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.viewMatrix = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.projectMatrix = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Swapchain.GetExtent().width) / m_Swapchain.GetExtent().height, 0.1f, 10.0f);
-    ubo.projectMatrix[1][1] *= -1;  // for vulkan
+    SACommonMatrices ubo = {};
+    ubo.SA_ObjectToWorld = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.SA_MatrixV = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.SA_MatrixP = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Swapchain.Extent().width) / m_Swapchain.Extent().height, 0.1f, 10.0f);
+    ubo.SA_MatrixP[1][1] *= -1;  // for vulkan
 
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(m_UniformBuffersMemory[idx], 0, sizeof(ubo), {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(m_UniformBuffers[idx].Memory(), 0, sizeof(ubo), {}), STEXT("Failed to map index buffer memory!"), &data);
     memcpy(data, &ubo, sizeof(ubo));
-    m_Device->unmapMemory(m_UniformBuffersMemory[idx]);
+    m_Device->unmapMemory(m_UniformBuffers[idx].Memory());
 }
-
 }
