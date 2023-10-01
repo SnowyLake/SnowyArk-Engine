@@ -115,6 +115,7 @@ vk::SurfaceFormatKHR VulkanSwapchain::ChooseSwapChainFormat(ArrayIn<vk::SurfaceF
     }
     return availableFormats[0];
 }
+
 vk::PresentModeKHR VulkanSwapchain::ChooseSwapPresentMode(ArrayIn<vk::PresentModeKHR> availablePresentModes) noexcept
 {
     auto bestMode = vk::PresentModeKHR::eFifo;

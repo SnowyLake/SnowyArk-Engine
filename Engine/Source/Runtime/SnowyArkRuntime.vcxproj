@@ -164,6 +164,7 @@
     <ClInclude Include="Function\Global\GlobalContextConfig.h" />
     <ClInclude Include="Function\Global\GlobalTypedef.h" />
     <ClInclude Include="Function\Rendering\Interface\RHI.h" />
+    <ClInclude Include="Function\Rendering\Interface\RHITexture.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanAdapter.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanBuffer.h" />
     <ClInclude Include="Function\Rendering\Interface\Vulkan\VulkanDevice.h" />
@@ -175,7 +176,7 @@
     <ClInclude Include="Function\Rendering\Mesh.h" />
     <ClInclude Include="Function\Rendering\RenderSystem.h" />
     <ClInclude Include="Function\Window\WindowSystem.h" />
-    <ClInclude Include="Platform\FileSystem.h" />
+    <ClInclude Include="Resource\AssetManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\Log\LogSystem.cpp" />
@@ -190,9 +191,10 @@
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanSwapchain.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanTexture.cpp" />
     <ClCompile Include="Function\Rendering\Interface\Vulkan\VulkanUtils.cpp" />
+    <ClCompile Include="Function\Rendering\Mesh.cpp" />
     <ClCompile Include="Function\Rendering\RenderSystem.cpp" />
     <ClCompile Include="Function\Window\WindowSystem.cpp" />
-    <ClCompile Include="Platform\FileSystem.cpp" />
+    <ClCompile Include="Resource\AssetManager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

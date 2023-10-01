@@ -35,7 +35,7 @@ public:
 
     vk::Format ImageFormat() const noexcept { return m_ImageFormat; }
     vk::Extent2D Extent() const noexcept { return m_Extent; }
-    Utils::NumType ImageCount() const noexcept { return Utils::CastNumType(m_Images.size()); }
+    Utils::NumType Count() const noexcept { return SA_VK_NUM(m_Images.size()); }
     const std::vector<vk::Image>& Images() const noexcept { return m_Images; }
     const std::vector<vk::ImageView>& ImageViews() const noexcept { return m_ImageViews; }
     const vk::Image& Image(size_t idx) const noexcept { return m_Images[idx]; }

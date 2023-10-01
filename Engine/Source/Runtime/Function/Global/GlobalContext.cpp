@@ -1,15 +1,19 @@
 ﻿#include "GlobalContext.h"
 #include "Engine/Source/Runtime/Core/Log/LogSystem.h"
+#include "Engine/Source/Runtime/Resource/AssetManager.h"
 #include "Engine/Source/Runtime/Function/Window/WindowSystem.h"
 #include "Engine/Source/Runtime/Function/Rendering/RenderSystem.h"
 namespace Snowy::Ark
 {
-RuntimeGlobalContext g_GlobalContext;
+RuntimeGlobalContext g_RuntimeContext;
 
 void RuntimeGlobalContext::Init(Ref<RuntimeGlobalContextConfig> config)
 {
     logSys = MakeShared<LogSystem>();
     logSys->Init(config.logSys);
+
+    assetMgr = MakeShared<AssetManager>();
+    assetMgr->Init();
 
     auto& windowSysConfig = config.windowSys;
     windowSysConfig.rhiBackend = config.renderSys.rhi.backend;
@@ -25,6 +29,7 @@ void RuntimeGlobalContext::Destory()
 {
     renderSys->Destory();
     windowSys->Destory();
+    assetMgr->Destory();
     logSys->Destory();
 }
 }

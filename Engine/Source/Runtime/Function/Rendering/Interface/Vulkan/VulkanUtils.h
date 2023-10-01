@@ -32,7 +32,7 @@ public:
     {
         if (result != targetResult)
         {
-            SA_LOG_ERROR(errorMsg);
+            SA_LOG_ERROR_SSTR(errorMsg);
         }
     }
 
@@ -41,7 +41,7 @@ public:
     {
         if (result.result != targetResult)
         {
-            SA_LOG_ERROR(errorMsg);
+            SA_LOG_ERROR_SSTR(errorMsg);
         } else
         {
             if (output)
@@ -65,17 +65,12 @@ public:
         verifyFunc(result);
     }
 
-
-    /*----------------------------------------------------------*/
-    // Vulkan Tool Functions
-    /*----------------------------------------------------------*/
-    static void CopyBuffer(ObserverHandle<VulkanRHI> ctx, vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size);
-
     template<typename T>
         requires std::is_integral_v<T> || std::is_enum_v<T>
     static NumType CastNumType(T num) 
     { 
         return static_cast<NumType>(num);
     }
+#define SA_VK_NUM(x) VulkanUtils::CastNumType(x)
 };
 }

@@ -17,7 +17,7 @@ void WindowSystem::Init(Ref<WindowSystemConfig> config)
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     } else
     {
-        SA_LOG_FATAL(STEXT("Dont support Graphics API."));
+        SA_LOG_FATAL("Dont support Graphics API.");
         return;
     }
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);

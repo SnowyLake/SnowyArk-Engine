@@ -3,6 +3,9 @@
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanAdapter.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanSwapchain.h"
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanBuffer.h"
+#include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanTexture.h"
+
+#include <filesystem>
 
 namespace Snowy::Ark
 {
@@ -40,9 +43,8 @@ public:
 
     VulkanSwapchain CreateSwapchain() noexcept;
 
-    std::tuple<vk::Buffer, vk::DeviceMemory> CreateBufferRaw(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
     VulkanBuffer CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
-
+    UniqueHandle<VulkanTexture> CreateTexture(ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params);
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code) noexcept;
 
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) noexcept;

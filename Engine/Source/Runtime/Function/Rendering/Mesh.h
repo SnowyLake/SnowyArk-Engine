@@ -11,7 +11,41 @@ namespace Snowy::Ark
 {
 struct VertexPosition
 {
+    static inline constexpr EVertexAttribute type = EVertexAttribute::Position;
+
     std::vector<glm::vec3> data;
+    EVertexAttributeFormat format;
+    uint32_t binding = 0;
+};
+struct VertexNormal
+{
+    static inline constexpr EVertexAttribute type = EVertexAttribute::Normal;
+
+    std::vector<glm::vec3> data;
+    EVertexAttributeFormat format;
+    uint32_t binding = 0;
+};
+struct VertexTangent
+{
+    static inline constexpr EVertexAttribute type = EVertexAttribute::Tangent;
+
+    std::vector<glm::vec4> data;
+    EVertexAttributeFormat format;
+    uint32_t binding = 0;
+};
+struct VertexColor
+{
+    static inline constexpr EVertexAttribute type = EVertexAttribute::Color;
+
+    std::vector<glm::vec4> data;
+    EVertexAttributeFormat format;
+    uint32_t binding = 0;
+};
+struct VertexTexcoord
+{
+    static inline constexpr EVertexAttribute type = EVertexAttribute::Texcoord;
+
+    std::vector<glm::vec2> data;
     EVertexAttributeFormat format;
     uint32_t binding = 0;
 };
@@ -26,10 +60,16 @@ public:
     Mesh& operator=(const Mesh&) = default;
     Mesh& operator=(Mesh&&) = default;
 
+    bool HasAttribute(EVertexAttribute attr) const noexcept;
+
 private:
     std::vector<uint32_t> m_Indices;
 
     VertexPosition position;
+    VertexNormal normal;
+    VertexTangent tangent;
+    VertexColor color;
+    std::vector<VertexTexcoord> texcoords;
 
 private:
     struct VertexAttributeFlags

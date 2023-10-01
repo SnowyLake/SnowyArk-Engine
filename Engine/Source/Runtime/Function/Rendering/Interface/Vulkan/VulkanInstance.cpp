@@ -31,7 +31,7 @@ void VulkanInstance::Init(ObserverHandle<OwnerType> owner) noexcept
 
     if (m_EnableValidationLayers && CheckValidationLayersSupport(m_ValidationLayers) == false)
     {
-        SA_LOG_ERROR(STEXT("Vaildation layers requested, but not available!"));
+        SA_LOG_ERROR("Vaildation layers requested, but not available!");
     }
 
     createInfo.setPEnabledExtensionNames(m_RequiredExtensions);
@@ -70,7 +70,7 @@ VulkanDevice VulkanInstance::CreateDevice() noexcept
     VulkanDevice device;
     device.RequiredExtensions().append_range(m_RequiredDeviceExtensions);
     device.Init(this);
-    SA_LOG_INFO(STEXT("Vulkan Device Initialized."));
+    SA_LOG_INFO("Vulkan Device Initialized.");
     return device;
 }
 
@@ -81,7 +81,7 @@ void VulkanInstance::CollectAdapters() noexcept
                             auto& [r, gpus] = result;
                             if (r != vk::Result::eSuccess || gpus.empty())
                             {
-                                SA_LOG_ERROR(STEXT("Faild to find GPUs with Vulkan support!"));
+                                SA_LOG_ERROR("Faild to find GPUs with Vulkan support!");
                             } else
                             {
                                 auto gpuCount = gpus.size();
@@ -106,7 +106,7 @@ void VulkanInstance::SetupDebugCallback() noexcept
                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                             void* pUserData) -> vk::Bool32
                             {
-                                SA_LOG_INFO(ANSI_TO_SSTR(pCallbackData->pMessage));
+                                SA_LOG_INFO_SSTR(ANSI_TO_SSTR(pCallbackData->pMessage));
                                 return SA_RHI_FALSE;
                             },
         .pUserData = nullptr,
@@ -118,7 +118,7 @@ void VulkanInstance::CreateSurface() noexcept
 {
     if (glfwCreateWindowSurface(m_Native, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
-        SA_LOG_ERROR(STEXT("Failed to create vulkan surface!"));
+        SA_LOG_ERROR("Failed to create vulkan surface!");
     }
 }
 
@@ -130,7 +130,7 @@ bool VulkanInstance::CheckValidationLayersSupport(ArrayIn<const AnsiChar*> valid
                             auto& [r, properties] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                SA_LOG_ERROR(STEXT("Failed to enumerate instance layer properties!"));
+                                SA_LOG_ERROR("Failed to enumerate instance layer properties!");
                             } else
                             {
                                 for (const AnsiChar* layerName : validationLayers)

@@ -7,12 +7,12 @@ namespace Snowy::Ark
 {
 void Engine::Init(Ref<EngineConfig> config)
 {
-    g_GlobalContext.Init(config.runtimeGlobalContext);
+    g_RuntimeContext.Init(config.runtimeGlobalContext);
 }
 
 void Engine::Run()
 {
-    SharedHandle windowSys = g_GlobalContext.windowSys;
+    SharedHandle windowSys = g_RuntimeContext.windowSys;
     SAssert(windowSys);
     while (!windowSys->ShouldClose())
     {
@@ -23,7 +23,7 @@ void Engine::Run()
 
 void Engine::Destroy()
 {
-    g_GlobalContext.Destory();
+    g_RuntimeContext.Destory();
 }
 
 void Engine::Tick(float deltaTime)
@@ -31,7 +31,7 @@ void Engine::Tick(float deltaTime)
     LogicTick(deltaTime);
 
     RenderingTick(deltaTime);
-    g_GlobalContext.windowSys->PollEvents();
+    g_RuntimeContext.windowSys->PollEvents();
 }
 
 void Engine::LogicTick(float deltaTime)
@@ -40,7 +40,7 @@ void Engine::LogicTick(float deltaTime)
 
 void Engine::RenderingTick(float deltaTime)
 {
-    g_GlobalContext.renderSys->Tick();
+    g_RuntimeContext.renderSys->Tick();
 }
 
 float Engine::CalculateDeltaTime()

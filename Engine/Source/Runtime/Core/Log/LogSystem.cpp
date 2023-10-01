@@ -62,7 +62,7 @@ AnsiString LogSystem::MessageConvert(SStringIn msg)
     {
         return SSTR_TO_ANSI(msg);
     }
-    else if (m_OutputTarget == ELogOutputTarget::Editor)
+    else
     {
         return SSTR_TO_UTF8(msg);
     }

@@ -4,11 +4,12 @@
 
 namespace Snowy::Ark
 {
+using Utils = VulkanUtils;
+
 void VulkanBuffer::Init(ObserverHandle<OwnerType> owner, vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
 {
     m_Owner = owner;
     m_Ctx = owner->Context();
-
 
     vk::BufferCreateInfo bufferInfo = {
         .size = size,

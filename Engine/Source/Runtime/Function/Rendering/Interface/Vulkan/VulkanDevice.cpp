@@ -1,6 +1,14 @@
 ﻿#include "VulkanDevice.h"
+
+#include "Engine/Source/Runtime/Function/Global/GlobalContext.h"
+#include "Engine/Source/Runtime/Resource/AssetManager.h"
+
 #include "Engine/Source/Runtime/Function/Rendering/Interface/Vulkan/VulkanInstance.h"
+
 #include <set>
+
+
+
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
@@ -24,7 +32,7 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
         }
         if (m_Adapter == m_Owner->Adapter(0))
         {
-            SA_LOG_ERROR(STEXT("Failed to find a suitable GPU!"));
+            SA_LOG_ERROR("Failed to find a suitable GPU!");
         }
     }
 
@@ -42,7 +50,9 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
         queueCreateInfos.emplace_back(queueCreateInfo);
     }
 
-    vk::PhysicalDeviceFeatures deviceFeatures{};
+    vk::PhysicalDeviceFeatures deviceFeatures = {
+        .samplerAnisotropy = SA_RHI_TRUE,
+    };
 
     vk::DeviceCreateInfo createInfo = {
         .queueCreateInfoCount = Utils::CastNumType(queueCreateInfos.size()),
@@ -64,8 +74,8 @@ void VulkanDevice::Init(ObserverHandle<OwnerType> owner) noexcept
     VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Native);
 
     m_Queues.resize(2);
-    m_Queues[Utils::CastNumType(ERHIQueue::Present)] = m_Native.getQueue(indices.present.value(), 0);
-    m_Queues[Utils::CastNumType(ERHIQueue::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
+    m_Queues[static_cast<size_t>(ERHIQueue::Present)] = m_Native.getQueue(indices.present.value(), 0);
+    m_Queues[static_cast<size_t>(ERHIQueue::Graphics)] = m_Native.getQueue(indices.graphics.value(), 0);
 }
 
 void VulkanDevice::Destroy() noexcept
@@ -77,32 +87,8 @@ VulkanSwapchain VulkanDevice::CreateSwapchain() noexcept
 {
     VulkanSwapchain swapchain;
     swapchain.Init(this);
-    SA_LOG_INFO(STEXT("Vulkan SwapChain, Initialized."));
+    SA_LOG_INFO("Vulkan SwapChain, Initialized.");
     return swapchain;
-}
-
-std::tuple<vk::Buffer, vk::DeviceMemory> VulkanDevice::CreateBufferRaw(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
-{
-    vk::Buffer buffer;
-    vk::DeviceMemory bufferMemory;
-
-    vk::BufferCreateInfo bufferInfo = {
-        .size = size,
-        .usage = usage,
-        .sharingMode = vk::SharingMode::eExclusive,
-    };
-    Utils::VerifyResult(m_Native.createBuffer(bufferInfo), STEXT("Failed to create buffer!"), &buffer);
-
-    vk::MemoryRequirements memRequirements;
-    m_Native.getBufferMemoryRequirements(buffer, &memRequirements);
-    vk::MemoryAllocateInfo allocInfo = {
-        .allocationSize = memRequirements.size,
-        .memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties),
-    };
-    Utils::VerifyResult(m_Native.allocateMemory(allocInfo), STEXT("Failed to allocate vertex buffer memory!"), &bufferMemory);
-    Utils::VerifyResult(m_Native.bindBufferMemory(buffer, bufferMemory, 0), STEXT("Failed to bind vertex buffer memory!"));
-
-    return std::make_tuple(buffer, bufferMemory);
 }
 
 VulkanBuffer VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
@@ -110,6 +96,13 @@ VulkanBuffer VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlag
     VulkanBuffer buffer = {};
     buffer.Init(this, size, usage, properties);
     return buffer;
+}
+
+UniqueHandle<VulkanTexture> VulkanDevice::CreateTexture(ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params)
+{
+    auto texture = MakeUnique<VulkanTexture>();
+    texture->Init(this, data, nullptr);
+    return texture;
 }
 
 vk::ShaderModule VulkanDevice::CreateShaderModule(ArrayIn<char> code) noexcept
@@ -136,7 +129,7 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFla
             return i;
         }
     }
-    SA_LOG_ERROR(STEXT("Failed to find suitable memory type!"));
+    SA_LOG_ERROR("Failed to find suitable memory type!");
     return 0;
 }
 
@@ -148,7 +141,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport(In<VulkanAdapter> adapter) noexce
                             auto& [r, extensions] = result;
                             if (r != vk::Result::eSuccess)
                             {
-                                SA_LOG_ERROR(STEXT("Failed to enumerate instance layer properties!"));
+                                SA_LOG_ERROR("Failed to enumerate instance layer properties!");
                             } else
                             {
                                 for (const auto& extension : extensions)
@@ -170,6 +163,7 @@ bool VulkanDevice::IsDeviceSuitable(In<VulkanAdapter> adapter) noexcept
         auto&& swapChainSupport = adapter.QuerySwapchainSupportDetails();
         swapchainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
-    return indices.IsComplete() && extensionsSupported && swapchainAdequate;
+    auto supportedFeatures = adapter->getFeatures();
+    return indices.IsComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy;
 }
 }
