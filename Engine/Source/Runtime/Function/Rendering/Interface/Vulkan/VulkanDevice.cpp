@@ -8,7 +8,6 @@
 #include <set>
 
 
-
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
@@ -91,17 +90,17 @@ VulkanSwapchain VulkanDevice::CreateSwapchain() noexcept
     return swapchain;
 }
 
-VulkanBuffer VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
+UniqueHandle<VulkanBuffer> VulkanDevice::CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept
 {
-    VulkanBuffer buffer = {};
-    buffer.Init(this, size, usage, properties);
+    auto buffer = MakeUnique<VulkanBuffer>();
+    buffer->Init(this, size, usage, properties);
     return buffer;
 }
 
-UniqueHandle<VulkanTexture> VulkanDevice::CreateTexture(ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params)
+UniqueHandle<VulkanTexture> VulkanDevice::CreateTexture(In<TextureData> data, In<VulkanTextureParams> params)
 {
     auto texture = MakeUnique<VulkanTexture>();
-    texture->Init(this, data, nullptr);
+    texture->Init(this, data, params);
     return texture;
 }
 

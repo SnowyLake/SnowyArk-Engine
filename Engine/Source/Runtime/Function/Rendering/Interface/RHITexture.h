@@ -5,15 +5,15 @@ namespace Snowy::Ark
 {
 struct TextureData
 {
-    TextureData() = default;
-    ~TextureData()
-    {
-        free(pixels);
-    }
     unsigned char* pixels;
     int width;
     int height;
     int channel;
+
+    ~TextureData()
+    {
+        free(pixels);
+    }
 };
 
 struct TextureParams

@@ -68,7 +68,7 @@ void VulkanSwapchain::ResourceInit() noexcept
     m_ImageFormat = surfaceFormat.format;
     m_Extent = extent;
 
-    m_ImageViews.resize(m_Images.size());
+    m_Views.resize(m_Images.size());
     for (size_t i = 0; i < m_Images.size(); i++)
     {
         vk::ImageViewCreateInfo createInfo = {
@@ -86,13 +86,13 @@ void VulkanSwapchain::ResourceInit() noexcept
             },
         };
         Utils::VerifyResult(m_Owner->Native().createImageView(createInfo, nullptr),
-                            std::format(STEXT("Failed to create swapchain image view[{}]!"), i), &m_ImageViews[i]);
+                            std::format(STEXT("Failed to create swapchain image view[{}]!"), i), &m_Views[i]);
     }
 }
 
 void VulkanSwapchain::Destory() noexcept
 {
-    for (auto&& imageView : m_ImageViews)
+    for (auto&& imageView : m_Views)
     {
         m_Owner->Native().destroyImageView(imageView);
     }

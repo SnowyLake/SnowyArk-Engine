@@ -41,7 +41,7 @@ void VulkanAdapter::QueryQueueFamilyIndices() noexcept
     }
 }
 
-SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const
+SwapchainSupportDetails VulkanAdapter::QuerySwapchainSupportDetails() const noexcept
 {
     SwapchainSupportDetails details;
     auto&& surface = m_Owner->Surface();

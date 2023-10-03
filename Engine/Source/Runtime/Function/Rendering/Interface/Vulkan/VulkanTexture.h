@@ -4,6 +4,18 @@
 
 namespace Snowy::Ark
 {
+struct VulkanTextureParams
+{
+    vk::ImageType type;
+    vk::Format format;
+    vk::ImageTiling tiling;
+    vk::ImageUsageFlags usage;
+    vk::MemoryPropertyFlags memoryProps;
+
+    vk::ImageViewType viewType;
+    vk::ImageAspectFlagBits aspectMask;
+};
+
 class VulkanDevice;
 class VulkanTexture : public RHITexture
 {
@@ -19,7 +31,7 @@ public:
     VulkanTexture& operator=(const VulkanTexture&) = default;
     VulkanTexture& operator=(VulkanTexture&&) = default;
 
-    void Init(ObserverHandle<OwnerType> owner, ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params);
+    void Init(ObserverHandle<OwnerType> owner, In<TextureData> data, In<VulkanTextureParams> params);
     void Destroy();
 
     auto& Native    () noexcept { return m_Native; }

@@ -43,8 +43,8 @@ public:
 
     VulkanSwapchain CreateSwapchain() noexcept;
 
-    VulkanBuffer CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
-    UniqueHandle<VulkanTexture> CreateTexture(ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params);
+    UniqueHandle<VulkanBuffer> CreateBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) noexcept;
+    UniqueHandle<VulkanTexture> CreateTexture(In<TextureData> data, In<VulkanTextureParams> params);
     vk::ShaderModule CreateShaderModule(ArrayIn<char> code) noexcept;
 
     uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) noexcept;

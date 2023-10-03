@@ -33,13 +33,13 @@ public:
     ObserverHandle<OwnerType> Owner() const noexcept { return m_Owner; }
     ObserverHandle<VulkanRHI> Context() const noexcept { return m_Ctx; }
 
-    vk::Format ImageFormat() const noexcept { return m_ImageFormat; }
+    vk::Format Format() const noexcept { return m_ImageFormat; }
     vk::Extent2D Extent() const noexcept { return m_Extent; }
     Utils::NumType Count() const noexcept { return SA_VK_NUM(m_Images.size()); }
     const std::vector<vk::Image>& Images() const noexcept { return m_Images; }
-    const std::vector<vk::ImageView>& ImageViews() const noexcept { return m_ImageViews; }
+    const std::vector<vk::ImageView>& Views() const noexcept { return m_Views; }
     const vk::Image& Image(size_t idx) const noexcept { return m_Images[idx]; }
-    const vk::ImageView& ImageView(size_t idx) const noexcept { return m_ImageViews[idx]; }
+    const vk::ImageView& View(size_t idx) const noexcept { return m_Views[idx]; }
 
     void Recreate() noexcept;
 
@@ -57,6 +57,6 @@ private:
     vk::Format m_ImageFormat;
     vk::Extent2D m_Extent;
     std::vector<vk::Image> m_Images;
-    std::vector<vk::ImageView> m_ImageViews;
+    std::vector<vk::ImageView> m_Views;
 };
 }

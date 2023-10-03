@@ -38,7 +38,7 @@ UniqueHandle<TextureData> AssetManager::LoadTexture(std::filesystem::path path)
     data->pixels = stbi_load(path.string().c_str(), &data->width, &data->height, &data->channel, STBI_rgb_alpha);
     if (!data->pixels)
     {
-        SA_LOG_ERROR("Failed to load texture image!");
+        SA_LOG_ERROR("Failed to load texture: {}", PATH_TO_SSTR(path));
         return nullptr;
     }
     return data;

@@ -12,7 +12,11 @@ using Utils = VulkanUtils;
 
 VulkanRHI::VulkanRHI()
 {
-    m_Texture = MakeUnique<VulkanTexture>();
+    //m_VertexBuffer = MakeUnique<VulkanBuffer>();
+    //m_IndexBuffer = MakeUnique<VulkanBuffer>();
+
+    //m_DepthAttachment = MakeUnique<VulkanTexture>();
+    //m_Texture = MakeUnique<VulkanTexture>();
 }
 
 void VulkanRHI::Init(In<RHIConfig> config)
@@ -31,24 +35,30 @@ void VulkanRHI::Run()
 
 void VulkanRHI::Init_Internal(In<RHIConfig> config)
 {
+    SetWindowHandle(config.windowHandle);
+
     CreateInstance(&m_Instance, config);
+
     m_Device = m_Instance.CreateDevice();
     m_Swapchain = m_Device.CreateSwapchain();
 }
 
 void VulkanRHI::PostInit_Internal()
 {
+    CreateCommandPool();
+
+    CreateDepthAttachment();
+
     CreateRenderPass();
     CreateDescriptorSetLayout();
     CreateGraphicsPipeline();
     CreateFramebuffers();
 
-    CreateCommandPool();
-
     CreateVertexBuffer(g_TriangleVertices);
     CreateIndexBuffer(g_TriangleIndices);
     CreateUniformBuffer();
-    CreateTexture(SA_ENGINE_PATH("Engine/Assets/Texture/texture.jpg"));
+    
+    CreateSampledTexture(SA_ENGINE_PATH("Engine/Assets/Texture/texture.jpg"));
 
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -66,11 +76,11 @@ void VulkanRHI::Destory()
     m_Device->destroyDescriptorSetLayout(m_DescriptorSetLayout);
     m_Device->destroyDescriptorPool(m_DescriptorPool);
 
-    m_VertexBuffer.Destroy();
-    m_IndexBuffer.Destroy();
+    m_VertexBuffer->Destroy();
+    m_IndexBuffer->Destroy();
     for (size_t i = 0; i < m_Swapchain.Count(); i++)
     {
-        m_UniformBuffers[i].Destroy();
+        m_UniformBuffers[i]->Destroy();
     }
 
     for (size_t i = 0; i < m_Instance.GetFrameCountInFlight(); i++)
@@ -122,8 +132,9 @@ void VulkanRHI::EndSingleTimeCommandBuffer(vk::CommandBuffer cmd)
         .commandBufferCount = 1,
         .pCommandBuffers = &cmd,
     };
-    Utils::VerifyResult(GraphicsQueue().submit(info), STEXT("Failed to submit single time command!"));
-    GraphicsQueue().waitIdle();
+    auto& queue = m_Device.Queue(ERHIQueue::Graphics);
+    Utils::VerifyResult(queue.submit(info), STEXT("Failed to submit single time command!"));
+    queue.waitIdle();
     m_Device->freeCommandBuffers(m_CommandPool, cmd);
 }
 
@@ -144,6 +155,7 @@ void VulkanRHI::RecreateSwapchain()
 
     CreateRenderPass();
     CreateGraphicsPipeline();
+    CreateDepthAttachment();
     CreateFramebuffers();
     CreateCommandBuffers();
     SA_LOG_INFO("Recreate SwapChain, Complete.");
@@ -151,7 +163,8 @@ void VulkanRHI::RecreateSwapchain()
 
 void VulkanRHI::CleanupSwapChain()
 {
-    for (auto&& framebuffer : m_SwapChainFramebuffers)
+    m_DepthAttachment->Destroy();
+    for (auto&& framebuffer : m_SwapchainFramebuffers)
     {
         m_Device->destroyFramebuffer(framebuffer);
     }
@@ -261,6 +274,18 @@ void VulkanRHI::CreateGraphicsPipeline()
         .alphaToOneEnable = SA_RHI_FALSE,
     };
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencil = {
+        .depthTestEnable = SA_RHI_TRUE,
+        .depthWriteEnable = SA_RHI_TRUE,
+        .depthCompareOp = vk::CompareOp::eLess,
+        .depthBoundsTestEnable = SA_RHI_FALSE,
+        .stencilTestEnable = SA_RHI_FALSE,
+        .front = {},
+        .back = {},
+        .minDepthBounds = 0.0f,
+        .maxDepthBounds = 1.0f,
+    };
+
     vk::PipelineColorBlendAttachmentState colorBlendAttachment = {
         .blendEnable = SA_RHI_FALSE,
         .srcColorBlendFactor = vk::BlendFactor::eOne,
@@ -304,7 +329,7 @@ void VulkanRHI::CreateGraphicsPipeline()
         .pViewportState = &viewportState,
         .pRasterizationState = &rasterizer,
         .pMultisampleState = &multisampling,
-        .pDepthStencilState = nullptr,
+        .pDepthStencilState = &depthStencil,
         .pColorBlendState = &colorBlending,
         .pDynamicState = nullptr,
         .layout = m_PipelineLayout,
@@ -324,7 +349,7 @@ void VulkanRHI::CreateRenderPass()
 {
     vk::AttachmentDescription colorAttachmentDesc = {
         .flags = vk::AttachmentDescriptionFlags{},
-        .format = m_Swapchain.ImageFormat(),
+        .format = m_Swapchain.Format(),
         .samples = vk::SampleCountFlagBits::e1,
         .loadOp = vk::AttachmentLoadOp::eClear,
         .storeOp = vk::AttachmentStoreOp::eStore,
@@ -333,16 +358,32 @@ void VulkanRHI::CreateRenderPass()
         .initialLayout = vk::ImageLayout::eUndefined,
         .finalLayout = vk::ImageLayout::ePresentSrcKHR,
     };
-
     vk::AttachmentReference colorAttachmentRef = {
         .attachment = 0,
         .layout = vk::ImageLayout::eColorAttachmentOptimal,
+    };
+
+    vk::AttachmentDescription depthAttachmentDesc = {
+        .flags = vk::AttachmentDescriptionFlags{},
+        .format = GetDepthFormat(),
+        .samples = vk::SampleCountFlagBits::e1,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
+        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+        .initialLayout = vk::ImageLayout::eUndefined,
+        .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+    };
+    vk::AttachmentReference depthAttachmentRef = {
+        .attachment = 1,
+        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
     };
 
     vk::SubpassDescription subpassDesc = {
         .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
         .colorAttachmentCount = 1,
         .pColorAttachments = &colorAttachmentRef,
+        .pDepthStencilAttachment = &depthAttachmentRef,
     };
 
     vk::SubpassDependency subpassDependency = {
@@ -354,9 +395,11 @@ void VulkanRHI::CreateRenderPass()
         .dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
     };
 
+    std::array attachments = { colorAttachmentDesc, depthAttachmentDesc };
+
     vk::RenderPassCreateInfo renderPassInfo = {
-        .attachmentCount = 1,
-        .pAttachments = &colorAttachmentDesc,
+        .attachmentCount = SA_VK_NUM(attachments.size()),
+        .pAttachments = attachments.data(),
         .subpassCount = 1,
         .pSubpasses = &subpassDesc,
         .dependencyCount = 1,
@@ -366,16 +409,17 @@ void VulkanRHI::CreateRenderPass()
     Utils::VerifyResult(m_Device->createRenderPass(renderPassInfo, nullptr), STEXT("Failed to create render pass!"), &m_RenderPass);
     SA_LOG_INFO("Create Render Pass, Complete.");
 }
+
 void VulkanRHI::CreateFramebuffers()
 {
-    m_SwapChainFramebuffers.resize(m_Swapchain.Count());
+    m_SwapchainFramebuffers.resize(m_Swapchain.Count());
     for (size_t i = 0; i < m_Swapchain.Count(); i++)
     {
-        std::array<vk::ImageView, 1> attachments{ m_Swapchain.ImageView(i) };
+        std::array attachments = { m_Swapchain.View(i), m_DepthAttachment->View() };
 
         vk::FramebufferCreateInfo framebufferInfo = {
             .renderPass = m_RenderPass,
-            .attachmentCount = Utils::CastNumType(attachments.size()),
+            .attachmentCount = SA_VK_NUM(attachments.size()),
             .pAttachments = attachments.data(),
             .width = m_Swapchain.Extent().width,
             .height = m_Swapchain.Extent().height,
@@ -383,10 +427,11 @@ void VulkanRHI::CreateFramebuffers()
         };
 
         Utils::VerifyResult(m_Device->createFramebuffer(framebufferInfo, nullptr),
-                            std::format(STEXT("Failed to create framebuffer[{}]!"), i), &m_SwapChainFramebuffers[i]);
+                            std::format(STEXT("Failed to create framebuffer[{}]!"), i), &m_SwapchainFramebuffers[i]);
     }
     SA_LOG_INFO("Create Framebuffers, Complete.");
 }
+
 void VulkanRHI::CreateCommandPool()
 {
     auto& queueFamilyIndices = m_Device.Adapter().GetQueueFamilyIndices();
@@ -399,9 +444,10 @@ void VulkanRHI::CreateCommandPool()
     Utils::VerifyResult(m_Device->createCommandPool(createInfo, nullptr), STEXT("Failed to create command pool!"), &m_CommandPool);
     SA_LOG_INFO("Create Command Pool, Complete.");
 }
+
 void VulkanRHI::CreateCommandBuffers()
 {
-    m_CommandBuffers.resize(m_SwapChainFramebuffers.size());
+    m_CommandBuffers.resize(m_SwapchainFramebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {
         .commandPool = m_CommandPool,
@@ -418,15 +464,15 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<SimpleVertex> triangleVertices)
 
     auto stagingBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer.Memory(), 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer->Memory(), 0, bufferSize, {}), STEXT("Failed to map vertex buffer memory!"), &data);
     memcpy(data, triangleVertices.data(), (size_t)bufferSize);
-    m_Device->unmapMemory(stagingBuffer.Memory());
+    m_Device->unmapMemory(stagingBuffer->Memory());
 
     m_VertexBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
+    CopyBuffer(*stagingBuffer, *m_VertexBuffer, bufferSize);
 
-    stagingBuffer.Destroy();
+    stagingBuffer->Destroy();
 }
 
 void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
@@ -435,15 +481,15 @@ void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
 
     auto stagingBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer.Memory(), 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(stagingBuffer->Memory(), 0, bufferSize, {}), STEXT("Failed to map index buffer memory!"), &data);
     memcpy(data, triangleIndices.data(), (size_t)bufferSize);
-    m_Device->unmapMemory(stagingBuffer.Memory());
+    m_Device->unmapMemory(stagingBuffer->Memory());
 
     m_IndexBuffer = m_Device.CreateBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-    CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
+    CopyBuffer(*stagingBuffer, *m_IndexBuffer, bufferSize);
 
-    stagingBuffer.Destroy();
+    stagingBuffer->Destroy();
 }
 
 void VulkanRHI::CreateUniformBuffer()
@@ -458,33 +504,66 @@ void VulkanRHI::CreateUniformBuffer()
     }
 }
 
-void VulkanRHI::CreateTexture(std::filesystem::path path)
+void VulkanRHI::CreateDepthAttachment()
+{
+    auto depthFormat = GetDepthFormat();
+    TextureData textureData = {
+        .pixels = SA_RHI_NULL,
+        .width = static_cast<int>(m_Swapchain.Extent().width),
+        .height = static_cast<int>(m_Swapchain.Extent().height),
+        .channel = 2,
+    };
+    VulkanTextureParams textureParams = {
+        .type = vk::ImageType::e2D,
+        .format = depthFormat,
+        .tiling = vk::ImageTiling::eOptimal,
+        .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        .memoryProps = vk::MemoryPropertyFlagBits::eDeviceLocal,
+
+        .viewType = vk::ImageViewType::e2D,
+        .aspectMask = vk::ImageAspectFlagBits::eDepth,
+    };
+    m_DepthAttachment = m_Device.CreateTexture(textureData, textureParams);
+    m_DepthAttachment->TransitionLayout(depthFormat, vk::ImageLayout::eUndefined, vk::ImageLayout::eDepthStencilAttachmentOptimal);
+}
+
+void VulkanRHI::CreateSampledTexture(std::filesystem::path path)
 {
     auto textureData = g_RuntimeContext.assetMgr->LoadTexture(path);
     vk::DeviceSize texSize = textureData->width * textureData->height * 4;
 
     auto stagingBuffer = m_Device.CreateBuffer(texSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-    void* data = m_Device->mapMemory(stagingBuffer.Memory(), 0, texSize, {}).value;
+    void* data = m_Device->mapMemory(stagingBuffer->Memory(), 0, texSize, {}).value;
     memcpy(data, textureData->pixels, static_cast<size_t>(texSize));
-    m_Device->unmapMemory(stagingBuffer.Memory());
+    m_Device->unmapMemory(stagingBuffer->Memory());
 
-    m_Texture = m_Device.CreateTexture(textureData.get(), nullptr);
+    VulkanTextureParams textureParams = {
+        .type = vk::ImageType::e2D,
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .tiling = vk::ImageTiling::eOptimal,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        .memoryProps = vk::MemoryPropertyFlagBits::eDeviceLocal,
+
+        .viewType = vk::ImageViewType::e2D,
+        .aspectMask = vk::ImageAspectFlagBits::eColor,
+    };
+    m_Texture = m_Device.CreateTexture(*textureData, textureParams);
 
     m_Texture->TransitionLayout(vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    CopyBufferToImage(stagingBuffer, *m_Texture, SA_VK_NUM(textureData->width), SA_VK_NUM(textureData->height));
+    CopyBufferToImage(*stagingBuffer, *m_Texture, SA_VK_NUM(textureData->width), SA_VK_NUM(textureData->height));
     m_Texture->TransitionLayout(vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
 
-    stagingBuffer.Destroy();
+    stagingBuffer->Destroy();
 }
 
 void VulkanRHI::CreateDescriptorPool()
 {
     std::array<vk::DescriptorPoolSize, 2> poolSizes = {};
-    poolSizes[0] = vk::DescriptorPoolSize{
+    poolSizes[0] = {
         .type = vk::DescriptorType::eUniformBuffer,
         .descriptorCount = m_Swapchain.Count(),
     };
-    poolSizes[1] = vk::DescriptorPoolSize{
+    poolSizes[1] = {
         .type = vk::DescriptorType::eCombinedImageSampler,
         .descriptorCount = m_Swapchain.Count(),
     };
@@ -509,7 +588,7 @@ void VulkanRHI::CreateDescriptorSets()
     for (size_t i = 0; i < m_Swapchain.Count(); i++)
     {
         vk::DescriptorBufferInfo bufferInfo = {
-            .buffer = m_UniformBuffers[i],
+            .buffer = *m_UniformBuffers[i],
             .offset = 0,
             .range = sizeof(SACommonMatrices),
         };
@@ -585,31 +664,32 @@ void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t id
                                 SA_LOG_ERROR("Failed to begin recording command buffer!");
                             } else
                             {
-                                std::array<vk::ClearValue, 1> clearValues = {
-                                    vk::ClearColorValue{.float32 = std::array{0.0f, 0.0f, 0.0f, 1.0f} }
+                                std::array clearValues = {
+                                    vk::ClearValue{.color = std::array{0.0f, 0.0f, 0.0f, 1.0f} },
+                                    vk::ClearValue{.depthStencil = {1.0f, 0} }
                                 };
                                 vk::RenderPassBeginInfo renderPassBeginInfo = {
                                     .renderPass = m_RenderPass,
-                                    .framebuffer = m_SwapChainFramebuffers[idx],
+                                    .framebuffer = m_SwapchainFramebuffers[idx],
                                     .renderArea = vk::Rect2D {
                                         .offset = {0, 0},
                                         .extent = m_Swapchain.Extent(),
                                     },
-                                    .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+                                    .clearValueCount = SA_VK_NUM(clearValues.size()),
                                     .pClearValues = clearValues.data(),
                                 };
 
                                 cmds[idx].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
                                 cmds[idx].bindPipeline(vk::PipelineBindPoint::eGraphics, m_GraphicsPipeline);
 
-                                std::array<vk::Buffer, 1> vertexBuffers = { m_VertexBuffer };
+                                std::array<vk::Buffer, 1> vertexBuffers = { *m_VertexBuffer };
                                 std::array<vk::DeviceSize, 1>   offsets = { 0 };
                                 cmds[idx].bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-                                cmds[idx].bindIndexBuffer(m_IndexBuffer, 0, vk::IndexType::eUint16);
+                                cmds[idx].bindIndexBuffer(*m_IndexBuffer, 0, vk::IndexType::eUint16);
 
                                 cmds[idx].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, m_DescriptorSets[idx], nullptr);
 
-                                cmds[idx].drawIndexed(static_cast<uint32_t>(g_TriangleIndices.size()), 1, 0, 0, 0);
+                                cmds[idx].drawIndexed(SA_VK_NUM(g_TriangleIndices.size()), 1, 0, 0, 0);
                                 cmds[idx].endRenderPass();
 
                                 Utils::VerifyResult(cmds[idx].end(), STEXT("Failed to end recording command buffer!"));
@@ -681,7 +761,6 @@ void VulkanRHI::DrawFrame()
 
 void VulkanRHI::CreateInstance(Out<VulkanInstance> instance, In<RHIConfig> config) noexcept
 {
-    instance->SetWindowHandle(config.windowHandle);
     instance->SetFrameCountInFlight(config.frameCountInFlight);
 #ifdef NDEBUG
     instance->EnableValidationLayers() = false;
@@ -719,9 +798,9 @@ void VulkanRHI::UpdateUniformBuffer(uint32_t idx)
     ubo.SA_MatrixP[1][1] *= -1;  // for vulkan
 
     void* data;
-    Utils::VerifyResult(m_Device->mapMemory(m_UniformBuffers[idx].Memory(), 0, sizeof(ubo), {}), STEXT("Failed to map index buffer memory!"), &data);
+    Utils::VerifyResult(m_Device->mapMemory(m_UniformBuffers[idx]->Memory(), 0, sizeof(ubo), {}), STEXT("Failed to map index buffer memory!"), &data);
     memcpy(data, &ubo, sizeof(ubo));
-    m_Device->unmapMemory(m_UniformBuffers[idx].Memory());
+    m_Device->unmapMemory(m_UniformBuffers[idx]->Memory());
 }
 
 void VulkanRHI::CopyBuffer(In<VulkanBuffer> srcBuffer, Ref<VulkanBuffer> dstBuffer, vk::DeviceSize size)
@@ -754,5 +833,27 @@ void VulkanRHI::CopyBufferToImage(In<VulkanBuffer> srcBuffer, Ref<VulkanTexture>
     };
     cmd.copyBufferToImage(srcBuffer, dstImage, vk::ImageLayout::eTransferDstOptimal, copyRegion);
     EndSingleTimeCommandBuffer(cmd);
+}
+
+vk::Format VulkanRHI::FindSupportedFormat(ArrayIn<vk::Format> formats, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const noexcept
+{
+    for (auto& format : formats)
+    {
+        vk::FormatProperties props = m_Device.Adapter()->getFormatProperties(format);
+        if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features)
+        {
+            return format;
+        } else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
+        {
+            return format;
+        }
+    }
+    SA_LOG_ERROR("Failed to find supported format!");
+    return vk::Format::eUndefined;
+}
+
+vk::Format VulkanRHI::GetDepthFormat() const noexcept
+{
+    return FindSupportedFormat(Utils::CommonDepthFormats, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
 }

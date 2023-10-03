@@ -116,7 +116,7 @@ void VulkanInstance::SetupDebugCallback() noexcept
 
 void VulkanInstance::CreateSurface() noexcept
 {
-    if (glfwCreateWindowSurface(m_Native, m_WindowHandle, nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(m_Native, m_Ctx->GetWindowHandle(), nullptr, reinterpret_cast<decltype(m_Surface)::NativeType*>(&m_Surface)) != VK_SUCCESS)
     {
         SA_LOG_ERROR("Failed to create vulkan surface!");
     }

@@ -130,6 +130,10 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>xcopy "$(SolutionDir)Engine\Assets\" "$(SolutionDir)Build\Engine\Assets\" /Y /E
+xcopy "$(SolutionDir)Engine\Shaders\SPIR-V\" "$(SolutionDir)Build\Engine\Shaders\SPIR-V\" /Y /E</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -152,6 +156,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PreBuildEvent>
+      <Command>xcopy "$(SolutionDir)Engine\Assets\" "$(SolutionDir)Build\Engine\Assets\" /Y /E
+xcopy "$(SolutionDir)Engine\Shaders\SPIR-V\" "$(SolutionDir)Build\Engine\Shaders\SPIR-V\" /Y /E</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Core\Base\Common.h" />

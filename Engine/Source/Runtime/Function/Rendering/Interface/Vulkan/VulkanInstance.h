@@ -32,9 +32,6 @@ public:
     ObserverHandle<OwnerType> Owner() const noexcept { return m_Owner; }
     ObserverHandle<VulkanRHI> Context() const noexcept { return m_Ctx; }
 
-    ObserverHandle<GLFWwindow> GetWindowHandle() const noexcept { return m_WindowHandle; }
-    void SetWindowHandle(ObserverHandle<GLFWwindow> handle) noexcept { m_WindowHandle = handle; }
-
     const vk::SurfaceKHR& Surface() const noexcept { return m_Surface; }
     ObserverHandle<VulkanAdapter> Adapter(uint32_t idx) noexcept { return &(m_Adapters[idx]); }
     uint32_t AdapterCount() const noexcept { return static_cast<uint32_t>(m_Adapters.size()); }
@@ -47,10 +44,10 @@ public:
     uint32_t GetFrameCountInFlight() const noexcept { return m_FrameCountInFlight; }
     void SetFrameCountInFlight(uint32_t count) noexcept { m_FrameCountInFlight = count; }
 
+    void CollectAdapters() noexcept;
     VulkanDevice CreateDevice() noexcept;
 
 private:
-    void CollectAdapters() noexcept;
     void SetupDebugCallback() noexcept;
     void CreateSurface() noexcept;
 
@@ -60,8 +57,6 @@ private:
     NativeType m_Native;
     ObserverHandle<OwnerType> m_Owner;
     ObserverHandle<VulkanRHI> m_Ctx;
-
-    ObserverHandle<GLFWwindow> m_WindowHandle;
 
     vk::SurfaceKHR m_Surface;
     vk::DebugUtilsMessengerEXT m_Callback;

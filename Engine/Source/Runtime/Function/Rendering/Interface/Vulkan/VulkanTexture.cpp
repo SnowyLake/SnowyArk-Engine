@@ -5,25 +5,25 @@ namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
 
-void VulkanTexture::Init(ObserverHandle<OwnerType> owner, ObserverHandle<TextureData> data, ObserverHandle<TextureParams> params)
+void VulkanTexture::Init(ObserverHandle<OwnerType> owner, In<TextureData> data, In<VulkanTextureParams> params)
 {
     m_Owner = owner;
     m_Ctx = owner->Context();
 
     vk::ImageCreateInfo info = {
         .flags = {},
-        .imageType = vk::ImageType::e2D,
-        .format = vk::Format::eR8G8B8A8Unorm,
+        .imageType = params.type,
+        .format = params.format,
         .extent = vk::Extent3D {
-            .width = Utils::CastNumType(data->width),
-            .height = Utils::CastNumType(data->height),
+            .width = SA_VK_NUM(data.width),
+            .height = SA_VK_NUM(data.height),
             .depth = 1
         },
         .mipLevels = 1,
         .arrayLayers = 1,
         .samples = vk::SampleCountFlagBits::e1,
-        .tiling = vk::ImageTiling::eOptimal,
-        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        .tiling = params.tiling,
+        .usage = params.usage,
         .sharingMode = vk::SharingMode::eExclusive,
         .initialLayout = vk::ImageLayout::eUndefined,
     };
@@ -33,7 +33,7 @@ void VulkanTexture::Init(ObserverHandle<OwnerType> owner, ObserverHandle<Texture
     vk::MemoryRequirements memRequirements = m_Owner->Native().getImageMemoryRequirements(m_Native);
     vk::MemoryAllocateInfo allocInfo = {
         .allocationSize = memRequirements.size,
-        .memoryTypeIndex = m_Owner->FindMemoryType(memRequirements.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
+        .memoryTypeIndex = m_Owner->FindMemoryType(memRequirements.memoryTypeBits, params.memoryProps),
     };
 
     Utils::VerifyResult(m_Owner->Native().allocateMemory(allocInfo), STEXT("Failed to allocate memory!"), &m_Memory);
@@ -42,10 +42,10 @@ void VulkanTexture::Init(ObserverHandle<OwnerType> owner, ObserverHandle<Texture
     // View
     vk::ImageViewCreateInfo viewInfo = {
         .image = m_Native,
-        .viewType = vk::ImageViewType::e2D,
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .subresourceRange = vk::ImageSubresourceRange {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
+        .viewType = params.viewType,
+        .format = params.format,
+        .subresourceRange = {
+            .aspectMask = params.aspectMask,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -96,13 +96,24 @@ void VulkanTexture::TransitionLayout(vk::Format format, vk::ImageLayout oldLayou
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = m_Native,
         .subresourceRange = vk::ImageSubresourceRange {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
             .layerCount = 1,
         },
     };
+    if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
+    {
+        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+        if (Utils::HasStencilComponent(format))
+        {
+            barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+        }
+    } else
+    {
+        barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    }
+
 
     vk::PipelineStageFlags srcStages, dstStages;
     if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
@@ -117,7 +128,14 @@ void VulkanTexture::TransitionLayout(vk::Format format, vk::ImageLayout oldLayou
         barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
         srcStages = vk::PipelineStageFlagBits::eTransfer;
         dstStages = vk::PipelineStageFlagBits::eFragmentShader;
-    } else
+    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal)
+    {
+        barrier.srcAccessMask = {};
+        barrier.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentRead | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+        srcStages = vk::PipelineStageFlagBits::eTopOfPipe;
+        dstStages = vk::PipelineStageFlagBits::eEarlyFragmentTests;
+    }
+    else
     {
         SA_LOG_ERROR("Unsupported layout transition!");
         return;
