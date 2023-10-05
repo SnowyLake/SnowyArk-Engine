@@ -33,6 +33,11 @@ struct SimpleVertex
     glm::vec3 color;
     glm::vec2 texcoord;
 
+    bool operator==(const SimpleVertex& other) const 
+    {
+        return position == other.position && color == other.color && texcoord == other.texcoord;
+    }
+
     static vk::VertexInputBindingDescription GetBindingDescription()
     {
         vk::VertexInputBindingDescription bindingDescription = {
@@ -67,7 +72,8 @@ struct SimpleVertex
     }
 };
 
-static std::vector<SimpleVertex> g_TriangleVertices = {
+
+static std::vector<SimpleVertex> g_TriangleVertices = {}/* = {
     {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
     {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
     {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
@@ -77,11 +83,11 @@ static std::vector<SimpleVertex> g_TriangleVertices = {
     {{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
     {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
     {{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-static std::vector<uint16_t> g_TriangleIndices = { 
+}*/;
+static std::vector<uint32_t> g_TriangleIndices = {}/* = {
     0, 1, 2, 2, 3, 0,
     4, 5, 6, 6, 7, 4,
-};
+}*/;
 
 
 class VulkanRHI final : public RHI
@@ -156,8 +162,9 @@ private:
     void CreateCommandPool();
     void CreateCommandBuffers();
 
+    void LoadModel(std::filesystem::path path);
     void CreateVertexBuffer(ArrayIn<SimpleVertex> triangleVertices);
-    void CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices);
+    void CreateIndexBuffer(ArrayIn<uint32_t> triangleIndices);
     void CreateUniformBuffer();
     void CreateDepthAttachment();
     void CreateSampledTexture(std::filesystem::path path);
@@ -181,4 +188,15 @@ public:
     vk::Format FindSupportedFormat(ArrayIn<vk::Format> formats, vk::ImageTiling tiling, vk::FormatFeatureFlags features) const noexcept;
     vk::Format GetDepthFormat() const noexcept;
 };
+}
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
+
+namespace std {
+    template<> struct hash<Snowy::Ark::SimpleVertex> {
+        size_t operator()(Snowy::Ark::SimpleVertex const& vertex) const {
+            return ((hash<glm::vec3>()(vertex.position) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texcoord) << 1);
+        }
+    };
 }

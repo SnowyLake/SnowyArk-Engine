@@ -6,6 +6,9 @@
 
 #include <set>
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include<tinyobjloader/tiny_obj_loader.h>
+
 namespace Snowy::Ark
 {
 using Utils = VulkanUtils;
@@ -54,11 +57,12 @@ void VulkanRHI::PostInit_Internal()
     CreateGraphicsPipeline();
     CreateFramebuffers();
 
+    LoadModel(SA_ENGINE_PATH("Engine/Assets/Model/chalet.obj"));
     CreateVertexBuffer(g_TriangleVertices);
     CreateIndexBuffer(g_TriangleIndices);
     CreateUniformBuffer();
     
-    CreateSampledTexture(SA_ENGINE_PATH("Engine/Assets/Texture/texture.jpg"));
+    CreateSampledTexture(SA_ENGINE_PATH("Engine/Assets/Texture/chalet.jpg"));
 
     CreateDescriptorPool();
     CreateDescriptorSets();
@@ -458,6 +462,51 @@ void VulkanRHI::CreateCommandBuffers()
     SA_LOG_INFO("Create Command Buffers, Complete.");
 }
 
+void VulkanRHI::LoadModel(std::filesystem::path path)
+{
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    AnsiString errorStr, warnStr;
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &errorStr, &warnStr, path.string().c_str())) 
+    {
+        SA_LOG_ERROR("Load model error: {}", ANSI_TO_SSTR(errorStr));
+        return;
+    }
+    if (!warnStr.empty())
+    {
+        SA_LOG_WARN("Load model warnning: {}", ANSI_TO_SSTR(warnStr));
+    }
+
+    std::unordered_map<SimpleVertex, uint32_t> uniqueVertices = {};
+
+    for (const auto& shape : shapes)
+    {
+        for (const auto& index : shape.mesh.indices)
+        {
+            SimpleVertex vertex;
+            vertex.position = {
+                attrib.vertices[3 * index.vertex_index + 0],
+                attrib.vertices[3 * index.vertex_index + 1],
+                attrib.vertices[3 * index.vertex_index + 2]
+            };
+            vertex.texcoord = {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+            };
+            vertex.color = {1.0f, 1.0f, 1.0f};
+            
+            if (!uniqueVertices.contains(vertex)) 
+            {
+                uniqueVertices[vertex] = static_cast<uint32_t>(g_TriangleVertices.size());
+                g_TriangleVertices.emplace_back(vertex);
+            }
+            g_TriangleIndices.emplace_back(uniqueVertices[vertex]);
+        }
+    }
+}
+
 void VulkanRHI::CreateVertexBuffer(ArrayIn<SimpleVertex> triangleVertices)
 {
     vk::DeviceSize bufferSize = sizeof(decltype(triangleVertices)::value_type) * triangleVertices.size();
@@ -475,7 +524,7 @@ void VulkanRHI::CreateVertexBuffer(ArrayIn<SimpleVertex> triangleVertices)
     stagingBuffer->Destroy();
 }
 
-void VulkanRHI::CreateIndexBuffer(ArrayIn<uint16_t> triangleIndices)
+void VulkanRHI::CreateIndexBuffer(ArrayIn<uint32_t> triangleIndices)
 {
     vk::DeviceSize bufferSize = sizeof(decltype(triangleIndices)::value_type) * triangleIndices.size();
 
@@ -685,7 +734,7 @@ void VulkanRHI::RecordCommandBuffer(ArrayIn<vk::CommandBuffer> cmds, uint32_t id
                                 std::array<vk::Buffer, 1> vertexBuffers = { *m_VertexBuffer };
                                 std::array<vk::DeviceSize, 1>   offsets = { 0 };
                                 cmds[idx].bindVertexBuffers(0, 1, vertexBuffers.data(), offsets.data());
-                                cmds[idx].bindIndexBuffer(*m_IndexBuffer, 0, vk::IndexType::eUint16);
+                                cmds[idx].bindIndexBuffer(*m_IndexBuffer, 0, vk::IndexType::eUint32);
 
                                 cmds[idx].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_PipelineLayout, 0, m_DescriptorSets[idx], nullptr);
 

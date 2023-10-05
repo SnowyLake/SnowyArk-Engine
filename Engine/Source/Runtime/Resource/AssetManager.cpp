@@ -1,11 +1,12 @@
 ﻿#include "AssetManager.h"
-
 #include "Engine/Source/Runtime/Core/Log/Logger.h"
 
 #include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include<stb/stb_image.h>
+//#define TINYOBJLOADER_IMPLEMENTATION
+//#include<tinyobjloader/tiny_obj_loader.h>
 
 namespace Snowy::Ark
 {

@@ -30,6 +30,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spdlog", "Engine\ThirdParty
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "stb", "Engine\ThirdParty\stb\stb.vcxproj", "{81FB2BD7-0A2A-4562-A52F-2A63DD5EEB46}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tinyobjloader", "Engine\ThirdParty\tinyobjloader\tinyobjloader.vcxproj", "{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -102,6 +104,14 @@ Global
 		{81FB2BD7-0A2A-4562-A52F-2A63DD5EEB46}.Release|x64.Build.0 = Release|x64
 		{81FB2BD7-0A2A-4562-A52F-2A63DD5EEB46}.Release|x86.ActiveCfg = Release|Win32
 		{81FB2BD7-0A2A-4562-A52F-2A63DD5EEB46}.Release|x86.Build.0 = Release|Win32
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Debug|x64.ActiveCfg = Debug|x64
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Debug|x64.Build.0 = Debug|x64
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Debug|x86.ActiveCfg = Debug|Win32
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Debug|x86.Build.0 = Debug|Win32
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Release|x64.ActiveCfg = Release|x64
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Release|x64.Build.0 = Release|x64
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Release|x86.ActiveCfg = Release|Win32
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -115,6 +125,7 @@ Global
 		{BA9BE6CC-76AE-4FFF-8DEA-74B1F0464692} = {1E912905-832C-454E-8A66-5EBDD16682A2}
 		{6F45A905-6B94-4AEF-9B4E-23AB72C68678} = {1E912905-832C-454E-8A66-5EBDD16682A2}
 		{81FB2BD7-0A2A-4562-A52F-2A63DD5EEB46} = {1E912905-832C-454E-8A66-5EBDD16682A2}
+		{BED69D75-F7DE-489D-B4E8-4DB1415CB88F} = {1E912905-832C-454E-8A66-5EBDD16682A2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A1244166-12B7-4973-B3CA-68B90E543DFC}

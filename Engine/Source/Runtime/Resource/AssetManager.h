@@ -21,6 +21,7 @@ public:
 public:
     std::vector<char> LoadSpirvShaderBinary(std::filesystem::path path);
     UniqueHandle<TextureData> LoadTexture(std::filesystem::path path);
+    void LoadModel(std::filesystem::path path);
 
 
 public:
