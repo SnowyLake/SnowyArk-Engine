@@ -1,0 +1,3 @@
+add_library(SnowyArkProjectOptions INTERFACE)
+
+target_compile_features(SnowyArkProjectOptions INTERFACE cxx_std_20)

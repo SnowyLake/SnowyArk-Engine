@@ -1,69 +1,58 @@
-# Prerequisites
-*.d
+# Project build output and generated data
+/Engine/[Bb]uild/
+/Engine/build-*/
+/Engine/cmake-build-*/
+/Engine/Cache/
+/Engine/Saved/
+/Engine/Dist/
+/Samples/*/[Bb]uild/
+/Samples/*/build-*/
+/Samples/*/cmake-build-*/
+/Samples/*/Cache/
+/Samples/*/Saved/
+/Samples/*/Dist/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Build directories
-build/
-Build/
-build-*/
-
-# CMake generated files
+# CMake, Ninja and CTest generated files
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 install_manifest.txt
 compile_commands.json
+CMakeUserPresets.json
+/Engine/Testing/
+/Samples/*/Testing/
+.ninja_deps
+.ninja_log
 
-# Temporary files
+# Compiler intermediates and debug data
+*.o
+*.pch
+*.gch
+*.ilk
+*.idb
+*.ipch
+*.pdb
+*.tlog
+
+# Dependency and tool caches
+vcpkg_installed/
+.cache/
+
+# Temporary files and logs
 *.tmp
 *.log
 *.bak
 *.swp
+*.swo
+*~
 
-# vcpkg
-vcpkg_installed/
+# IDE files
+.vs/
+.idea/
 
-# debug information files
-*.dwo
+# Windows file explorer metadata
+Thumbs.db
+Desktop.ini
 
-# test output & cache
-Testing/
-.cache/
+# Local agent records
+/.agent-sessions/
