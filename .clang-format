@@ -1,0 +1,27 @@
+# Verified with clang-format 22.1.3 (Visual Studio LLVM x64). See Engine/Docs/Building.md.
+BasedOnStyle: Microsoft
+Standard: c++20
+ColumnLimit: 200
+AccessModifierOffset: -4
+BreakBeforeBraces: Allman
+PointerAlignment: Left
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+Cpp11BracedListStyle: Block
+SpaceBeforeCpp11BracedList: true
+SpaceInEmptyBraces: Never
+FixNamespaceComments: false
+PackConstructorInitializers: NextLineOnly
+IncludeBlocks: Regroup
+MainIncludeChar: AngleBracket
+IncludeCategories:
+  - Regex: '^<(Runtime|Editor|Tools)/'
+    Priority: 3
+  - Regex: '^<(algorithm|any|array|atomic|barrier|bit|bitset|charconv|chrono|codecvt|compare|complex|concepts|condition_variable|coroutine|deque|exception|execution|filesystem|format|forward_list|fstream|functional|future|initializer_list|iomanip|ios|iosfwd|iostream|istream|iterator|latch|limits|list|locale|map|memory|memory_resource|mutex|new|numbers|numeric|optional|ostream|queue|random|ranges|ratio|regex|scoped_allocator|semaphore|set|shared_mutex|source_location|span|sstream|stack|stdexcept|stop_token|streambuf|string|string_view|syncstream|system_error|thread|tuple|type_traits|typeindex|typeinfo|unordered_map|unordered_set|utility|valarray|variant|vector|version)>'
+    Priority: 1
+  - Regex: '^<(cassert|cctype|cerrno|cfenv|cfloat|cinttypes|ciso646|climits|clocale|cmath|csetjmp|csignal|cstdarg|cstdbool|cstddef|cstdint|cstdio|cstdlib|cstring|ctgmath|ctime|cuchar|cwchar|cwctype)>'
+    Priority: 1
+  - Regex: '^<(assert|ctype|errno|fenv|float|inttypes|iso646|limits|locale|math|setjmp|signal|stdarg|stdbool|stddef|stdint|stdio|stdlib|string|tgmath|time|uchar|wchar|wctype)\.h>'
+    Priority: 1
+  - Regex: '.*'
+    Priority: 2

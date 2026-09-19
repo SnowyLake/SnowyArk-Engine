@@ -1,5 +1,8 @@
 {
     "name": "snowyark",
     "version-string": "0.1.0",
-    "dependencies": []
+    "builtin-baseline": "908da3a305a0a8028d9602ab241b433652b3df69",
+    "dependencies": [
+        "glfw3"
+    ]
 }

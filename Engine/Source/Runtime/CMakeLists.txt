@@ -21,5 +21,15 @@ target_link_libraries(
     PUBLIC
         SnowyArkProjectOptions
     PRIVATE
+        glfw
+        Vulkan::Vulkan
         SnowyArkWarnings
+)
+
+target_compile_definitions(
+    SnowyArk
+    PRIVATE
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+        VK_USE_PLATFORM_WIN32_KHR
+        GLFW_INCLUDE_NONE
 )

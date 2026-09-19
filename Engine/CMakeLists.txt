@@ -9,6 +9,7 @@ include(CTest)
 include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/ProjectOptions.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/Warnings.cmake")
 include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/Dependencies.cmake")
+include("${CMAKE_CURRENT_SOURCE_DIR}/CMake/Shaders.cmake")
 
 add_subdirectory(Source/Runtime)
 add_subdirectory(Source/Editor)

@@ -1,10 +1,19 @@
+#include <exception>
+
 #include <Editor/EditorApplication.h>
-#include <iostream>
-#include <format>
+#include <Runtime/Core/Log.h>
 
 /// Runs the SnowyArk editor executable.
 int main()
 {
-    std::cout << std::format("Hello SnowyArk Engine!\n");
-    return 0;
+    try
+    {
+        SnowyArk::EditorApplication editor;
+        return editor.Run();
+    }
+    catch (const std::exception& exception)
+    {
+        SnowyArk::Log::Error("Unhandled exception: {}", exception.what());
+        return 1;
+    }
 }
