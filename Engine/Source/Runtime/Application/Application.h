@@ -22,7 +22,7 @@ public:
     /// Releases runtime resources. Cleanup waits that fail are logged and do not escape the destructor.
     ~Application() noexcept;
 
-    /// Creates the device, swapchain, shaders, and triangle pipeline. `window` must remain alive until Shutdown or destruction.
+    /// Creates the device, swapchain, shaders, and indexed rectangle pipeline. `window` must remain alive until Shutdown or destruction.
     /// Returns false without changing existing objects if a window, device, or swapchain is already held. Other failures call Shutdown; unrecoverable GPU errors throw.
     [[nodiscard]] bool Initialize(Window& window);
 

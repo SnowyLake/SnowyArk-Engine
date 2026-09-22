@@ -8,10 +8,12 @@
 namespace SnowyArk
 {
 
+class Buffer;
 class CommandBuffer;
 class PipelineState;
 class SwapChain;
 class Window;
+struct BufferDesc;
 struct GraphicsPipelineDesc;
 struct WindowNativeHandle;
 
@@ -31,8 +33,15 @@ public:
     /// Creates a swapchain for the given window. `window` must remain alive for the lifetime of the returned swapchain.
     virtual std::unique_ptr<SwapChain> CreateSwapChain(const Window& window) = 0;
 
-    /// Creates a graphics pipeline from the supplied description. `desc.shaderSpirv` is borrowed only for this call.
+    /// Creates a graphics pipeline from the supplied description. `desc.shaderSpirv`, `desc.vertexBindings`, and `desc.vertexAttributes` are borrowed only for this call.
+    /// Invalid vertex layouts, missing shader code or entry names, and backend failures throw.
     virtual std::unique_ptr<PipelineState> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
+
+    /// Creates a device-local buffer and uploads `desc.initialData` before returning.
+    /// Synchronous initialization API; may block on earlier GPU work. `desc.initialData` is borrowed only for this call.
+    /// Returns null when `initialData` is empty. The buffer must be destroyed before this device, after any GPU use has finished.
+    /// Invalid usage and backend failures throw. An upload failure requires application cleanup before any further rendering.
+    virtual std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc) = 0;
 
     /// Acquires the next swapchain image and begins recording.
     /// Returns a borrowed command buffer valid until EndFrame, the next BeginFrame on this device, swapchain recreation, or Shutdown. Returns null when this frame must be skipped.

@@ -35,9 +35,21 @@ cmake --build Build/Release
 ctest --preset Release
 ```
 
-启动目标为 `SnowyArkEditor`, 会打开窗口并提交硬编码 triangle pass. 可执行文件旁边需要 `Shaders/Passes/Triangle.spv`, 由 CMake 调用 `slangc` 生成并在构建后复制. 其他构建目标的状态见 [当前状态](../../README.md#当前状态).
+启动目标为 `SnowyArkEditor`, 会打开窗口并用索引缓冲画彩色矩形. 可执行文件旁边需要 `Shaders/Passes/Triangle.spv`, 由 CMake 调用 `slangc` 生成并在构建后复制. 其他构建目标的状态见 [当前状态](../../README.md#当前状态).
 
-`BUILD_TESTING` 控制是否生成 `SnowyArkTests`. test preset 在未发现测试时会报错. `SnowyArkTests` 检查 `AcquiredFrameAction::Decide` 的 Success / Suboptimal / 连续 OutOfDate, `CleanupWait::TryWait` 在成功, `std::exception` 和非 `std::exception` 时不向外抛出, `Window::Create` 拒绝宽或高为 0 以及大于 `INT_MAX` 的初始尺寸 (这些路径不调用 `glfwInit`), 以及 `ShaderLibrary::Load` 在独占探测子目录中拒绝缺失 / 空 / 非 4 字节倍数文件, 并检查同路径再次 Load 会替换内容. 这些测试不执行 Application 的 GPU 资源释放, 也不覆盖真实零尺寸 framebuffer. 当前测试未模拟缺少所需特性的 GPU 或低于 Vulkan 1.4 的 loader. 画面, resize 和最小化恢复需要启动编辑器另行验证.
+`BUILD_TESTING` 控制是否生成 `SnowyArkTests`. test preset 在未发现测试时会报错. 默认测试检查 `AcquiredFrameAction::Decide` 的 Success / Suboptimal / 连续 OutOfDate, `CleanupWait::TryWait` 在成功, `std::exception` 和非 `std::exception` 时不向外抛出, `Window::Create` 拒绝宽或高为 0 以及大于 `INT_MAX` 的初始尺寸 (这些路径不调用 `glfwInit`), 以及 `ShaderLibrary::Load` 在独占探测子目录中拒绝缺失 / 空 / 非 4 字节倍数文件, 并检查同路径再次 Load 会替换内容.
+
+具备 Vulkan 1.4 GPU 和桌面窗口环境时, 可启用 GPU 回归 (在 `Engine/` 下执行, Release 同理):
+
+```sh
+cmake --preset Develop -DSNOWYARK_GPU_TESTS=ON
+cmake --build Build/Develop
+ctest --preset Develop
+```
+
+`SNOWYARK_GPU_TESTS` 默认关闭, 可用 `-DSNOWYARK_GPU_TESTS=OFF` 恢复. 开启后 CTest 增加 `SnowyArkGpuTests`, 用 `SnowyArkTests --gpu` 运行, 超时为 30 秒. 测试经 GAL 创建暂存上传的顶点与索引缓冲, 检查无效布局, 缓冲混绑, 偏移, 索引范围, 录制状态重置与重复初始化, 并交替提交 UInt16 矩形和 UInt32 三角形, 覆盖帧槽复用及同尺寸 swapchain 重建. 构建测试目标时同步更新其 Shader 副本. 负向用例会输出预期的引擎错误日志; 未捕获异常, 检查失败或 Vulkan validation 消息会使该 CTest 失败. Develop 启用 validation 和同步检查, Release 不启用.
+
+这些测试未注入上传 fence 等待失败或设备丢失, 不覆盖 Application 故障清理, 真实窗口 resize / 最小化恢复, 不支持所需特性的 GPU 或低于 Vulkan 1.4 的 loader. GPU 测试检查提交行为和 validation, 不比较画面像素; 画面和窗口交互仍需启动编辑器另行验证.
 
 ## C++ 格式化
 

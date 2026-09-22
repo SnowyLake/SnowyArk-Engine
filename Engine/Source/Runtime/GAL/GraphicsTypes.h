@@ -13,7 +13,21 @@ enum class GraphicsBackend
 enum class Format
 {
     Unknown,
-    R8G8B8A8Srgb
+    R8G8B8A8Srgb,
+    R32G32Sfloat,
+    R32G32B32Sfloat,
+};
+
+enum class IndexType
+{
+    UInt16,
+    UInt32,
+};
+
+enum class VertexInputRate
+{
+    PerVertex,
+    PerInstance,
 };
 
 struct Extent2D

@@ -13,7 +13,7 @@
 
 ## 目标
 
-SnowyArk 用于实时渲染的学习和实验. 当前编辑器可以打开窗口并提交硬编码 triangle pass. 本文说明代码应放在哪里, 以及各模块已经承担和后续实现时应承担的职责.
+SnowyArk 用于实时渲染的学习和实验. 当前编辑器可以打开窗口, 并用顶点缓冲和索引缓冲画彩色矩形. 本文说明代码应放在哪里, 以及各模块已经承担和后续实现时应承担的职责.
 
 项目使用 CMake 和 C++20. 编译选项见 [CMake 维护](Building.md#cmake-维护), 命名和注释要求见 [代码约定](../../AGENTS.md#代码约定).
 
@@ -51,7 +51,8 @@ SnowyArk-Engine/
 │  │  ├─ Building.md
 │  │  ├─ Architecture.md
 │  │  └─ Decisions/
-│  │     └─ FirstTriangle.md
+│  │     ├─ FirstTriangle.md
+│  │     └─ VertexBuffers.md
 │  ├─ Scripts/
 │  ├─ CMakeLists.txt
 │  ├─ CMakePresets.json
@@ -97,16 +98,16 @@ Engine 和每个 `Samples/<Name>/` 分别维护 CMake 入口, Preset 和 `Build/
 | `Core/` | 不依赖其他引擎模块的基础设施, 目前有日志, 可执行文件路径, 以及关闭时的 GPU 等待辅助 |
 | `Application/` | 运行时子系统的初始化, 每帧推进 (Tick), 关闭与资源释放. Tick 不等待窗口事件; BeginFrame 返回空指针时跳过 Render / EndFrame |
 | `Platform/` | 通用窗口接口, 含非阻塞 `PumpEvents` 和可阻塞的 `WaitEvents`. Windows 实现当前使用 GLFW, 不使用原生 Win32 窗口 |
-| `GAL/` | Graphics Abstract Layer. 公共头是抽象基类 (`GraphicsDevice`, `SwapChain`, `CommandBuffer`, `PipelineState`), 由 `GraphicsDevice::Create` 按 `GraphicsBackend` 创建 |
+| `GAL/` | Graphics Abstract Layer. 公共头是抽象基类 (`GraphicsDevice`, `SwapChain`, `CommandBuffer`, `PipelineState`, `Buffer`), 由 `GraphicsDevice::Create` 按 `GraphicsBackend` 创建 |
 | `GAL/Vulkan/` | GAL 的 Vulkan 后端, 唯一允许出现 `vk::*` 的目录 |
 | `Shader/` | 运行时读取 SPIR-V. `ShaderLibrary::Load` 在文件缺失, 大小为 0, 不是 4 字节倍数, 或超出 `size_t` / `streamsize` 可表示范围时返回 false. 源文件是 Slang, 由 CMake 调用 `slangc` 编译 |
-| `RenderPipeline/` | 上层帧级渲染管线. 当前是硬编码 triangle pass, 只通过 GAL 虚接口录制 |
+| `RenderPipeline/` | 上层帧级渲染管线. 当前用顶点缓冲和索引缓冲画彩色矩形, 只通过 GAL 虚接口录制 |
 
 这些目录共同构建为 `SnowyArk` 静态库. 新模块先放入对应目录, 有独立构建需求时再拆分 target.
 
 ## Runtime 与 Editor 职责
 
-`EditorApplication` 已创建窗口并驱动主循环, `Runtime/Application` 已初始化图形设备并每帧提交 triangle pass. 后续仍按以下职责分工:
+`EditorApplication` 已创建窗口并驱动主循环, `Runtime/Application` 已初始化图形设备并每帧提交索引矩形 pass. 后续仍按以下职责分工:
 
 - `Engine/Source/Editor/Main.cpp` 作为可执行入口, 创建并启动 `EditorApplication`.
 - `EditorApplication` 掌握外层主循环, 调用 Runtime Application 的初始化, Tick 和关闭操作, 并组织编辑器 UI, 编辑命令及未来的编辑/播放状态. framebuffer 为零时, 主循环调用 `Window::WaitEvents` 等待事件, 不空转; 关闭或恢复窗口后 WaitEvents 返回. `Application::Tick` 不等待窗口事件, 零尺寸时直接返回且不消耗 resize 标记; 绘制仍可能等待 GPU fence 或取图.
@@ -114,17 +115,17 @@ Engine 和每个 `Samples/<Name>/` 分别维护 CMake 入口, Preset 和 `Build/
 - 通用窗口创建和平台事件能力由 `Runtime/Platform` 提供, 面板布局和编辑器视图选择由 Editor 决定.
 - 暂停游戏逻辑时, 编辑器界面和渲染视图仍应能够更新, 因此它们的更新不能始终绑定到游戏逻辑的 Tick.
 
-Editor 首版已经有窗口和硬编码 triangle pass. GUI 框架, 播放模式, `IApplication` 和继承体系不在当前阶段引入.
+Editor 首版已经有窗口和索引矩形 pass. GUI 框架, 播放模式, `IApplication` 和继承体系不在当前阶段引入.
 
 GAL 用虚函数做后端分发, 等价于小型 RHI. `RenderPipeline` 和 `Application` 只依赖抽象基类. 现在 `GraphicsDevice::Create` 只实现 `GraphicsBackend::Vulkan`. 以后加 D3D 或 OpenGL 时新增 `GAL/<Api>/` 目录和工厂分支, 不改 Pass 录制代码. 不使用 CRTP, 也不把 `GraphicsDevice` typedef 成某个后端. 延迟命令编码和 RHI 线程不在当前范围.
 
-录制对象命名为 `CommandBuffer`. fence, command pool, image view 留在 Vulkan 后端内部.
+录制对象命名为 `CommandBuffer`. fence, command pool, image view 和缓冲上传留在 Vulkan 后端内部. 顶点缓冲的约定见 [顶点缓冲](Decisions/VertexBuffers.md).
 
 `GraphicsDevice::BeginFrame` 返回非拥有的 `CommandBuffer*`, 有效期到本次 `EndFrame`, 下一次 `BeginFrame`, swapchain 重建或 `Shutdown`. 取图失败, 窗口为零, 或 swapchain 仍待重建时返回空指针; 上层只在非空时调用 `Render` / `EndFrame`. acquire 区分 Success, Suboptimal, OutOfDate. Suboptimal 完成本帧并消费 acquire semaphore, 把重建留到本帧呈现之后. OutOfDate 和零尺寸跳过本帧, 不 reset fence, 也不使用无效 image index. 重建请求在零尺寸期间保留, 窗口恢复后再创建. 新的 image 和 image view 创建成功后再写入成员, 避免只清掉 view 的半成品. 创建会传入 `oldSwapchain`, 失败时旧 swapchain 也可能已退役 (retired), 所以抛出后不能再当可绘制 swapchain 用, 只留给随后的清理.
 
-关闭时, `Application::Shutdown` 和 `VulkanDevice::Shutdown` 为 `noexcept`. `waitIdle` 失败 (例如 DeviceLost) 时, `CleanupWait::TryWait` 向 stderr 写一条尽力而为的诊断, 然后仍按依赖顺序释放已创建对象, 析构不向外抛异常. `Application::Initialize` 若已持有 window, device 或 swapchain, 返回 false 且不改现有对象. 工厂返回空指针或其他失败会先 Shutdown; 构造过程中抛出时由析构走同一条路径.
+关闭时, `Application::Shutdown` 和 `VulkanDevice::Shutdown` 为 `noexcept`. `waitIdle` 失败 (例如 DeviceLost) 时, `CleanupWait::TryWait` 向 stderr 写一条尽力而为的诊断, 然后仍按依赖顺序释放已创建对象, 析构不向外抛异常. `RenderPipeline::Shutdown` 在这次等待之后释放管线和缓冲, 设备此时仍然存活. `Application::Initialize` 若已持有 window, device 或 swapchain, 返回 false 且不改现有对象. 工厂返回空指针或其他失败会先 Shutdown; 构造过程中抛出时由析构走同一条路径.
 
-当前 swapchain 只接受 `R8G8B8A8Srgb` 与 `SrgbNonlinear`. 选设备要求 Vulkan 1.4, 以及逻辑设备会启用的 `shaderDrawParameters`, `dynamicRendering` 和 `synchronization2`; 选设备和创建 swapchain 时都会检查表面格式. 不满足则给出明确错误, 不会回退到其他格式.
+当前 swapchain 只接受 `R8G8B8A8Srgb` 与 `SrgbNonlinear`. 选设备要求 Vulkan 1.4, 以及逻辑设备会启用的 `dynamicRendering` 和 `synchronization2`; 选设备和创建 swapchain 时都会检查表面格式. 不满足则给出明确错误, 不会回退到其他格式.
 
 ## 依赖规则
 

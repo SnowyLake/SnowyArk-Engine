@@ -16,8 +16,8 @@ function(snowyark_add_slang_shader targetName)
             -profile spirv_1_4
             -emit-spirv-directly
             -fvk-use-entrypoint-name
-            -entry vertMain
-            -entry fragMain
+            -entry MainVertex
+            -entry MainFragment
             -o "${outputFile}"
         DEPENDS ${SHADER_SOURCES}
         COMMENT "Compiling Slang shader ${SHADER_OUTPUT_NAME}"

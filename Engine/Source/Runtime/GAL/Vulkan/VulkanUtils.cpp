@@ -13,6 +13,10 @@ vk::Format VulkanUtils::ToVkFormat(const Format format)
     {
     case Format::R8G8B8A8Srgb:
         return vk::Format::eR8G8B8A8Srgb;
+    case Format::R32G32Sfloat:
+        return vk::Format::eR32G32Sfloat;
+    case Format::R32G32B32Sfloat:
+        return vk::Format::eR32G32B32Sfloat;
     case Format::Unknown:
         break;
     }

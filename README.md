@@ -16,16 +16,16 @@ SnowyArk 是一个用于学习和实验实时渲染的 C++20 游戏引擎项目.
 
 ## 当前状态
 
-项目已能在编辑器窗口中绘制硬编码三色三角形, 支持窗口尺寸变化和最小化恢复. 窗口由 GLFW 创建, 渲染走 Vulkan 1.4 Dynamic Rendering, Shader 用 Slang 编成 SPIR-V. GAL 是虚函数形式的小型 RHI, 目前只有 Vulkan 后端. 顶点仍写在 Shader 里, 还没有顶点缓冲, 描述符, 编辑器 UI 或离线 ShaderCompiler.
+项目已能在编辑器窗口中绘制彩色矩形: 四个角的顶点经顶点缓冲上传, 两个三角形共用这些顶点, 用索引缓冲绘制. 支持窗口尺寸变化和最小化恢复. 窗口由 GLFW 创建, 渲染走 Vulkan 1.4 Dynamic Rendering, Shader 用 Slang 编成 SPIR-V. GAL 是虚函数形式的小型 RHI, 目前只有 Vulkan 后端. 还没有描述符, 编辑器 UI 或离线 ShaderCompiler.
 
-取图失败时跳过本帧, 最小化时等待窗口事件. 当前要求 surface 支持 `R8G8B8A8Srgb` 与 `SrgbNonlinear`, 具体约定见 [第一个三角形相关决策](Engine/Docs/Decisions/FirstTriangle.md).
+取图失败时跳过本帧, 最小化时等待窗口事件. 当前要求 surface 支持 `R8G8B8A8Srgb` 与 `SrgbNonlinear`. 窗口, GAL 和 Dynamic Rendering 的约定见 [第一个三角形相关决策](Engine/Docs/Decisions/FirstTriangle.md). 顶点缓冲和索引缓冲的约定见 [顶点缓冲](Engine/Docs/Decisions/VertexBuffers.md).
 
 | 构建目标 | 当前内容 |
 | --- | --- |
-| `SnowyArk` | 引擎运行时静态库, 含窗口, GAL, 硬编码 triangle pass |
-| `SnowyArkEditor` | 打开窗口并每帧提交一个三色三角形 pass |
+| `SnowyArk` | 引擎运行时静态库, 含窗口, GAL, 索引矩形 pass |
+| `SnowyArkEditor` | 打开窗口并每帧用索引缓冲画彩色矩形 |
 | `SnowyArkShaderCompiler` | 离线 Shader 编译工具入口, 尚未实现编译功能 |
-| `SnowyArkTests` | `AcquiredFrameAction::Decide`, `CleanupWait::TryWait`, `Window::Create` (宽高为 0 或大于 `INT_MAX`), 以及独占目录中 `ShaderLibrary::Load` / 同 key 再加载的回归检查 |
+| `SnowyArkTests` | 帧决策, 清理等待, 窗口尺寸和 Shader 加载回归; 可选 GPU 回归检查缓冲绑定, 顶点布局与 16/32 位索引绘制, 见 [编译与测试](Engine/Docs/Building.md#编译与测试) |
 
 ## 开始使用
 
@@ -42,6 +42,7 @@ SnowyArk 是一个用于学习和实验实时渲染的 C++20 游戏引擎项目.
 - [构建与运行](Engine/Docs/Building.md): 编译配置, 测试命令和 Rider 设置.
 - [工程结构](Engine/Docs/Architecture.md): 目录用途, 模块职责和依赖关系.
 - [第一个三角形相关决策](Engine/Docs/Decisions/FirstTriangle.md): GLFW, GAL 虚接口, Slang 和 Dynamic Rendering.
+- [顶点缓冲](Engine/Docs/Decisions/VertexBuffers.md): 设备内上传, 顶点布局, 索引矩形.
 - [AI 开发约定](AGENTS.md): AI 修改本项目时应遵循的代码, 构建和验证要求.
 
 ## 许可证

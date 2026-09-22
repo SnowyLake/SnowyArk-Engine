@@ -25,6 +25,7 @@ public:
     bool Initialize(const WindowNativeHandle& nativeHandle, std::span<const char* const> instanceExtensions) override;
     std::unique_ptr<SwapChain> CreateSwapChain(const Window& window) override;
     std::unique_ptr<PipelineState> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
+    std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc) override;
     CommandBuffer* BeginFrame(SwapChain& swapChain) override;
     void EndFrame(SwapChain& swapChain) override;
     void WaitIdle() override;
@@ -45,7 +46,7 @@ private:
     /// Creates the logical device and graphics/present queues.
     void CreateLogicalDevice();
 
-    /// Creates the command pool used for per-frame command buffers.
+    /// Creates the per-frame command pool and the transient pool used for buffer uploads.
     void CreateCommandPool();
 
     /// Allocates per-frame command buffers, acquire semaphores, and in-flight fences.
@@ -68,6 +69,21 @@ private:
     /// Builds the debug-messenger create info that points at DebugCallback.
     static vk::DebugUtilsMessengerCreateInfoEXT MakeDebugMessengerCreateInfo();
 
+    struct AllocatedBuffer
+    {
+        vk::raii::DeviceMemory memory = nullptr;
+        vk::raii::Buffer buffer = nullptr;
+    };
+
+    /// Allocates a buffer and binds one dedicated device-memory allocation.
+    AllocatedBuffer CreateAllocatedBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
+
+    /// Returns a memory type that satisfies `typeFilter` and every flag in `properties`.
+    uint32_t FindMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties) const;
+
+    /// Copies `size` bytes, makes transfer writes visible to `dstStage`, and waits for the upload fence; failed waits drain the device before unwinding.
+    void CopyBuffer(vk::Buffer source, vk::Buffer destination, vk::DeviceSize size, vk::PipelineStageFlags2 dstStage, vk::AccessFlags2 dstAccess);
+
     static constexpr uint32_t k_MaxFramesInFlight = 2;
 
 #ifndef NDEBUG
@@ -85,6 +101,7 @@ private:
     vk::raii::Queue m_GraphicsQueue = nullptr;
     vk::raii::Queue m_PresentQueue = nullptr;
     vk::raii::CommandPool m_CommandPool = nullptr;
+    vk::raii::CommandPool m_UploadCommandPool = nullptr;
     vk::raii::CommandBuffers m_VkCommandBuffers = nullptr;
     std::vector<std::unique_ptr<VulkanCommandBuffer>> m_CommandBuffers;
     std::vector<vk::raii::Semaphore> m_ImageAvailableSemaphores;

@@ -14,6 +14,7 @@
 | 修改源文件收集, 平台选择和编译选项 | [CMake 维护](Building.md#cmake-维护) |
 | 目录用途, 模块职责和依赖关系 | [工程结构](Architecture.md) |
 | 第一个三角形的窗口, GAL 和 Shader 决策 | [第一个三角形相关决策](Decisions/FirstTriangle.md) |
+| 顶点缓冲, 索引缓冲和矩形示例 | [顶点缓冲](Decisions/VertexBuffers.md) |
 | AI 修改代码, 验证结果和维护文档的要求 | [开发约定](../../AGENTS.md) |
 
 第一次接触项目时, 先阅读项目介绍, 再按构建文档配置环境. 修改代码前, 查看工程结构中对应模块的职责.

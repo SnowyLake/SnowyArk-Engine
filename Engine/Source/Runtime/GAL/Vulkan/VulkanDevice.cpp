@@ -1,6 +1,7 @@
 #include <Runtime/GAL/Vulkan/VulkanDevice.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -11,8 +12,10 @@
 
 #include <Runtime/Core/CleanupWait.h>
 #include <Runtime/Core/Log.h>
+#include <Runtime/GAL/Buffer.h>
 #include <Runtime/GAL/FrameBegin.h>
 #include <Runtime/GAL/PipelineState.h>
+#include <Runtime/GAL/Vulkan/VulkanBuffer.h>
 #include <Runtime/GAL/Vulkan/VulkanPipelineState.h>
 #include <Runtime/GAL/Vulkan/VulkanSwapChain.h>
 #include <Runtime/GAL/Vulkan/VulkanUtils.h>
@@ -52,6 +55,15 @@ std::unique_ptr<SwapChain> VulkanDevice::CreateSwapChain(const Window& window)
 
 std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const GraphicsPipelineDesc& desc)
 {
+    if (desc.shaderSpirv.empty() || desc.vertexEntryName == nullptr || desc.fragmentEntryName == nullptr || desc.vertexEntryName[0] == '\0' || desc.fragmentEntryName[0] == '\0')
+    {
+        Log::Fatal("Graphics pipeline requires shader code and non-empty entry names.");
+    }
+    const auto limits = m_PhysicalDevice.getProperties().limits;
+    if (desc.vertexBindings.size() > limits.maxVertexInputBindings || desc.vertexAttributes.size() > limits.maxVertexInputAttributes)
+    {
+        Log::Fatal("Vertex layout exceeds device binding or attribute limits.");
+    }
     const vk::ShaderModuleCreateInfo shaderModuleInfo {
         .codeSize = desc.shaderSpirv.size_bytes(),
         .pCode = desc.shaderSpirv.data(),
@@ -63,7 +75,49 @@ std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const Graphi
         { .stage = vk::ShaderStageFlagBits::eFragment, .module = shaderModule, .pName = desc.fragmentEntryName },
     };
 
-    constexpr vk::PipelineVertexInputStateCreateInfo vertexInput {};
+    std::vector<vk::VertexInputBindingDescription> bindingDescriptions;
+    bindingDescriptions.reserve(desc.vertexBindings.size());
+    for (const VertexBinding& binding : desc.vertexBindings)
+    {
+        if (binding.binding >= limits.maxVertexInputBindings || binding.stride > limits.maxVertexInputBindingStride ||
+            (binding.inputRate != VertexInputRate::PerVertex && binding.inputRate != VertexInputRate::PerInstance) ||
+            std::ranges::any_of(bindingDescriptions, [&](const auto& previous) { return previous.binding == binding.binding; }))
+        {
+            Log::Fatal("Invalid or duplicate vertex binding description.");
+        }
+        const vk::VertexInputRate inputRate = binding.inputRate == VertexInputRate::PerInstance ? vk::VertexInputRate::eInstance : vk::VertexInputRate::eVertex;
+        bindingDescriptions.push_back({ .binding = binding.binding, .stride = binding.stride, .inputRate = inputRate });
+    }
+
+    std::vector<vk::VertexInputAttributeDescription> attributeDescriptions;
+    attributeDescriptions.reserve(desc.vertexAttributes.size());
+    for (const VertexAttribute& attribute : desc.vertexAttributes)
+    {
+        if (attribute.location >= limits.maxVertexInputAttributes || attribute.offset > limits.maxVertexInputAttributeOffset ||
+            std::ranges::none_of(desc.vertexBindings, [&](const auto& binding) { return binding.binding == attribute.binding; }) ||
+            std::ranges::any_of(attributeDescriptions, [&](const auto& previous) { return previous.location == attribute.location; }))
+        {
+            Log::Fatal("Invalid vertex attribute location, offset, or binding.");
+        }
+        const auto format = VulkanUtils::ToVkFormat(attribute.format);
+        if (!(m_PhysicalDevice.getFormatProperties(format).bufferFeatures & vk::FormatFeatureFlagBits::eVertexBuffer))
+        {
+            Log::Fatal("Vertex attribute format is not supported for vertex input.");
+        }
+        attributeDescriptions.push_back({
+            .location = attribute.location,
+            .binding = attribute.binding,
+            .format = format,
+            .offset = attribute.offset,
+        });
+    }
+
+    const vk::PipelineVertexInputStateCreateInfo vertexInput {
+        .vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size()),
+        .pVertexBindingDescriptions = bindingDescriptions.data(),
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions = attributeDescriptions.data(),
+    };
     constexpr vk::PipelineInputAssemblyStateCreateInfo inputAssembly { .topology = vk::PrimitiveTopology::eTriangleList };
     constexpr vk::PipelineViewportStateCreateInfo viewportState { .viewportCount = 1, .scissorCount = 1 };
     constexpr vk::PipelineRasterizationStateCreateInfo rasterizer {
@@ -115,6 +169,44 @@ std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const Graphi
 
     vk::raii::Pipeline pipeline(m_Device, nullptr, pipelineInfo);
     return std::make_unique<VulkanPipelineState>(std::move(pipelineLayout), std::move(pipeline));
+}
+
+std::unique_ptr<Buffer> VulkanDevice::CreateBuffer(const BufferDesc& desc)
+{
+    if (desc.initialData.empty())
+    {
+        Log::Error("Buffer initial data is empty.");
+        return nullptr;
+    }
+
+    vk::BufferUsageFlags usage = vk::BufferUsageFlagBits::eTransferDst;
+    vk::PipelineStageFlags2 dstStage = vk::PipelineStageFlagBits2::eVertexAttributeInput;
+    vk::AccessFlags2 dstAccess = vk::AccessFlagBits2::eVertexAttributeRead;
+    switch (desc.usage)
+    {
+    case BufferUsage::Vertex:
+        usage |= vk::BufferUsageFlagBits::eVertexBuffer;
+        dstStage = vk::PipelineStageFlagBits2::eVertexAttributeInput;
+        dstAccess = vk::AccessFlagBits2::eVertexAttributeRead;
+        break;
+    case BufferUsage::Index:
+        usage |= vk::BufferUsageFlagBits::eIndexBuffer;
+        dstStage = vk::PipelineStageFlagBits2::eIndexInput;
+        dstAccess = vk::AccessFlagBits2::eIndexRead;
+        break;
+    default:
+        Log::Fatal("Unsupported buffer usage.");
+    }
+
+    const vk::DeviceSize size = desc.initialData.size();
+    AllocatedBuffer staging = CreateAllocatedBuffer(size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    void* const mapped = staging.memory.mapMemory(0, size);
+    std::memcpy(mapped, desc.initialData.data(), static_cast<std::size_t>(size));
+    staging.memory.unmapMemory();
+
+    AllocatedBuffer deviceBuffer = CreateAllocatedBuffer(size, usage, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    CopyBuffer(*staging.buffer, *deviceBuffer.buffer, size, dstStage, dstAccess);
+    return std::make_unique<VulkanBuffer>(std::move(deviceBuffer.memory), std::move(deviceBuffer.buffer), size, desc.usage);
 }
 
 CommandBuffer* VulkanDevice::BeginFrame(SwapChain& swapChain)
@@ -214,6 +306,7 @@ void VulkanDevice::Shutdown() noexcept
     m_ImageAvailableSemaphores.clear();
     m_VkCommandBuffers.clear();
     m_CommandPool = nullptr;
+    m_UploadCommandPool = nullptr;
     m_PresentQueue = nullptr;
     m_GraphicsQueue = nullptr;
     m_Device = nullptr;
@@ -299,10 +392,9 @@ void VulkanDevice::PickPhysicalDevice()
             continue;
         }
 
-        const auto featureChain = device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan13Features>();
-        const auto& vulkan11Features = featureChain.get<vk::PhysicalDeviceVulkan11Features>();
+        const auto featureChain = device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan13Features>();
         const auto& vulkan13Features = featureChain.get<vk::PhysicalDeviceVulkan13Features>();
-        if (!vulkan11Features.shaderDrawParameters || !vulkan13Features.dynamicRendering || !vulkan13Features.synchronization2)
+        if (!vulkan13Features.dynamicRendering || !vulkan13Features.synchronization2)
         {
             continue;
         }
@@ -348,8 +440,7 @@ void VulkanDevice::PickPhysicalDevice()
         return;
     }
 
-    Log::Fatal(
-        "No suitable Vulkan 1.4 GPU was found. A candidate must report shaderDrawParameters, dynamicRendering, and synchronization2, and the surface must support R8G8B8A8Srgb with SrgbNonlinear.");
+    Log::Fatal("No suitable Vulkan 1.4 GPU was found. A candidate must report dynamicRendering and synchronization2, and the surface must support R8G8B8A8Srgb with SrgbNonlinear.");
 }
 
 void VulkanDevice::CreateLogicalDevice()
@@ -363,10 +454,9 @@ void VulkanDevice::CreateLogicalDevice()
     }
 
     vk::PhysicalDeviceVulkan13Features vulkan13Features { .synchronization2 = vk::True, .dynamicRendering = vk::True };
-    vk::PhysicalDeviceVulkan11Features vulkan11Features { .pNext = &vulkan13Features, .shaderDrawParameters = vk::True };
     constexpr const char* swapchainExtension = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
     const vk::DeviceCreateInfo deviceInfo {
-        .pNext = &vulkan11Features,
+        .pNext = &vulkan13Features,
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledExtensionCount = 1,
@@ -385,6 +475,94 @@ void VulkanDevice::CreateCommandPool()
         .queueFamilyIndex = m_GraphicsQueueFamily,
     };
     m_CommandPool = vk::raii::CommandPool(m_Device, poolInfo);
+
+    const vk::CommandPoolCreateInfo uploadPoolInfo {
+        .flags = vk::CommandPoolCreateFlagBits::eTransient,
+        .queueFamilyIndex = m_GraphicsQueueFamily,
+    };
+    m_UploadCommandPool = vk::raii::CommandPool(m_Device, uploadPoolInfo);
+}
+
+VulkanDevice::AllocatedBuffer VulkanDevice::CreateAllocatedBuffer(const vk::DeviceSize size, const vk::BufferUsageFlags usage, const vk::MemoryPropertyFlags properties)
+{
+    const vk::BufferCreateInfo bufferInfo {
+        .size = size,
+        .usage = usage,
+        .sharingMode = vk::SharingMode::eExclusive,
+    };
+    vk::raii::Buffer buffer(m_Device, bufferInfo);
+    const vk::MemoryRequirements requirements = buffer.getMemoryRequirements();
+    const vk::MemoryAllocateInfo allocateInfo {
+        .allocationSize = requirements.size,
+        .memoryTypeIndex = FindMemoryType(requirements.memoryTypeBits, properties),
+    };
+    // ponytail: one VkDeviceMemory per buffer. Ceiling is maxMemoryAllocationCount (can be 4096). Upgrade path is suballocation.
+    vk::raii::DeviceMemory memory(m_Device, allocateInfo);
+    buffer.bindMemory(*memory, 0);
+    return { .memory = std::move(memory), .buffer = std::move(buffer) };
+}
+
+uint32_t VulkanDevice::FindMemoryType(const uint32_t typeFilter, const vk::MemoryPropertyFlags properties) const
+{
+    const vk::PhysicalDeviceMemoryProperties memoryProperties = m_PhysicalDevice.getMemoryProperties();
+    for (uint32_t index = 0; index < memoryProperties.memoryTypeCount; ++index)
+    {
+        const bool supported = (typeFilter & (1u << index)) != 0;
+        const bool matches = (memoryProperties.memoryTypes[index].propertyFlags & properties) == properties;
+        if (supported && matches)
+        {
+            return index;
+        }
+    }
+    Log::Fatal("Failed to find a suitable Vulkan memory type.");
+}
+
+void VulkanDevice::CopyBuffer(const vk::Buffer source, const vk::Buffer destination, const vk::DeviceSize size, const vk::PipelineStageFlags2 dstStage, const vk::AccessFlags2 dstAccess)
+{
+    const vk::CommandBufferAllocateInfo allocateInfo {
+        .commandPool = m_UploadCommandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+    std::vector<vk::raii::CommandBuffer> commandBuffers = m_Device.allocateCommandBuffers(allocateInfo);
+    vk::raii::CommandBuffer& commandBuffer = commandBuffers.front();
+    commandBuffer.begin(vk::CommandBufferBeginInfo { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    const vk::BufferCopy region { .srcOffset = 0, .dstOffset = 0, .size = size };
+    commandBuffer.copyBuffer(source, destination, region);
+
+    const vk::BufferMemoryBarrier2 barrier {
+        .srcStageMask = vk::PipelineStageFlagBits2::eCopy,
+        .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .dstStageMask = dstStage,
+        .dstAccessMask = dstAccess,
+        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .buffer = destination,
+        .offset = 0,
+        .size = size,
+    };
+    const vk::DependencyInfo dependency { .bufferMemoryBarrierCount = 1, .pBufferMemoryBarriers = &barrier };
+    commandBuffer.pipelineBarrier2(dependency);
+    commandBuffer.end();
+
+    const vk::CommandBuffer commandHandle = *commandBuffer;
+    const vk::SubmitInfo submitInfo { .commandBufferCount = 1, .pCommandBuffers = &commandHandle };
+    vk::raii::Fence fence(m_Device, vk::FenceCreateInfo {});
+    m_GraphicsQueue.submit(submitInfo, *fence);
+    try
+    {
+        const vk::Result waitResult = m_Device.waitForFences(*fence, vk::True, UINT64_MAX);
+        if (waitResult != vk::Result::eSuccess)
+        {
+            Log::Fatal("Failed to wait for a buffer upload.");
+        }
+    }
+    catch (...)
+    {
+        // Keep the fence, command buffer, and both buffers alive through the fault-path wait.
+        CleanupWait::TryWait([this] { WaitIdle(); });
+        throw;
+    }
 }
 
 void VulkanDevice::CreateFrameResources()
@@ -402,7 +580,7 @@ void VulkanDevice::CreateFrameResources()
     m_CommandBuffers.reserve(k_MaxFramesInFlight);
     for (uint32_t index = 0; index < k_MaxFramesInFlight; ++index)
     {
-        m_CommandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(m_VkCommandBuffers[index]));
+        m_CommandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(m_VkCommandBuffers[index], *m_Device, m_PhysicalDevice.getProperties().limits.maxVertexInputBindings));
         m_ImageAvailableSemaphores.emplace_back(m_Device, vk::SemaphoreCreateInfo {});
         m_InFlightFences.emplace_back(m_Device, vk::FenceCreateInfo { .flags = vk::FenceCreateFlagBits::eSignaled });
     }

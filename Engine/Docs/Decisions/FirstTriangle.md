@@ -29,11 +29,11 @@ GAL 按小型 RHI 设计: `GraphicsDevice`, `SwapChain`, `CommandBuffer`, `Pipel
 - UE 那种延迟命令列表和 RHI 线程
 - 现在就建空的 `GAL/OpenGL` 或 `GAL/D3D12`
 
-录制入口叫 `CommandBuffer`, 对应 Vulkan / Metal 的命名, 也方便以后映射 D3D12 的 command list. 硬编码三角形 Pass 放在 `RenderPipeline`, 只调用这些虚接口.
+录制入口叫 `CommandBuffer`, 对应 Vulkan / Metal 的命名, 也方便以后映射 D3D12 的 command list. 索引矩形 Pass 放在 `RenderPipeline`, 只调用这些虚接口.
 
 ## Shader 使用 Slang
 
-第一个三角形的 Shader 是 `Engine/Assets/Shaders/Passes/Triangle.slang`, 入口 `vertMain` 和 `fragMain`, 由 SDK 中的 `slangc` 编成一份 SPIR-V. 编译参数与教程相同: `-target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name`.
+Shader 是 `Engine/Assets/Shaders/Passes/Triangle.slang`, 入口 `MainVertex` 和 `MainFragment`, 由 SDK 中的 `slangc` 编成一份 SPIR-V. 编译参数与教程相同: `-target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name`. 顶点着色器从 location 0 读取位置, 从 location 1 读取颜色. 数据放在顶点缓冲和索引缓冲里, 见 [顶点缓冲](VertexBuffers.md).
 
 `SnowyArkShaderCompiler` 仍是空入口. 运行时 `ShaderLibrary` 只读可执行文件旁的 SPIR-V.
 
@@ -41,7 +41,7 @@ GAL 按小型 RHI 设计: `GraphicsDevice`, `SwapChain`, `CommandBuffer`, `Pipel
 
 不创建 `VkRenderPass` 和 framebuffer. 图形管线带 `vk::PipelineRenderingCreateInfo`, 每帧 `beginRendering` / `endRendering`. 这与现行教程一致, 也更接近以后要做的多 pass.
 
-Instance 请求 Vulkan 1.4. 选设备时先丢掉 `apiVersion` 低于 1.4 的 GPU, 再用 `PhysicalDeviceFeatures2` 链查询 `shaderDrawParameters`, `dynamicRendering` 和 `synchronization2`; 缺一项就看下一张卡. 逻辑设备启用这三项 (`shaderDrawParameters` 是 Slang 使用 `SV_VertexID` 需要的). 从 present 到 color attachment 的 layout transition 使用 `ColorAttachmentOutput` 作为 source stage, 与 acquire semaphore 的 wait stage 对齐.
+Instance 请求 Vulkan 1.4. 选设备时先丢掉 `apiVersion` 低于 1.4 的 GPU, 再用 `PhysicalDeviceFeatures2` 链查询 `dynamicRendering` 和 `synchronization2`; 缺一项就看下一张卡. 逻辑设备启用这两项. 从 present 到 color attachment 的 layout transition 使用 `ColorAttachmentOutput` 作为 source stage, 与 acquire semaphore 的 wait stage 对齐.
 
 ## Swapchain 只接受 R8G8B8A8Srgb
 

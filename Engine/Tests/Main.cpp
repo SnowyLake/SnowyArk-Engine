@@ -1,11 +1,15 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -13,8 +17,14 @@
 #include <Runtime/Core/CleanupWait.h>
 #include <Runtime/Core/Log.h>
 #include <Runtime/Core/Path.h>
+#include <Runtime/GAL/Buffer.h>
+#include <Runtime/GAL/CommandBuffer.h>
 #include <Runtime/GAL/FrameBegin.h>
+#include <Runtime/GAL/GraphicsDevice.h>
+#include <Runtime/GAL/PipelineState.h>
+#include <Runtime/GAL/SwapChain.h>
 #include <Runtime/Platform/Window.h>
+#include <Runtime/RenderPipeline/RenderPipeline.h>
 #include <Runtime/Shader/ShaderLibrary.h>
 
 namespace SnowyArk
@@ -49,6 +59,22 @@ public:
 
     /// Creates a new directory under executable `Shaders/` that did not already exist.
     static bool CreateUniqueProbeDir(ShaderProbeDir& probe);
+
+    /// Runs opt-in Vulkan checks through GAL, including uploads, invalid input, frame-slot reuse, and swapchain recreation.
+    static void RunGpuChecks();
+
+    /// Checks that a rejected operation reports a runtime error instead of recording invalid GPU work.
+    template <typename Operation> static void RequireThrows(Operation operation, const char* name)
+    {
+        try
+        {
+            operation();
+            Require(false, name);
+        }
+        catch (const std::runtime_error&)
+        {
+        }
+    }
 
 private:
     static int s_Failures;
@@ -131,12 +157,147 @@ struct CleanupOwner
         }
     }
 };
+
+struct GpuCleanupWait
+{
+    GraphicsDevice& device;
+
+    /// Drains submitted work before test resources unwind, including on a failed check.
+    ~GpuCleanupWait()
+    {
+        CleanupWait::TryWait([this] { device.WaitIdle(); });
+    }
+};
+
+void TestRunner::RunGpuChecks()
+{
+    Window window;
+    if (!window.Create({ .width = 320, .height = 240, .title = "SnowyArk GPU regression" }))
+    {
+        Require(false, "GPU test window creation");
+        return;
+    }
+    auto device = GraphicsDevice::Create(GraphicsBackend::Vulkan);
+    if (!device->Initialize(window.GetNativeHandle(), window.GetInstanceExtensions()))
+    {
+        Require(false, "GPU test device initialization");
+        return;
+    }
+    auto swapChain = device->CreateSwapChain(window);
+    ShaderLibrary shaders;
+    if (!shaders.Load("Passes/Triangle.spv"))
+    {
+        Require(false, "GPU test shader load");
+        return;
+    }
+    RenderPipeline renderPipeline;
+    std::unique_ptr<Buffer> vertexBuffer;
+    std::unique_ptr<Buffer> indexBuffer;
+    std::unique_ptr<PipelineState> pipeline;
+    GpuCleanupWait cleanup { *device };
+    const bool initialized = renderPipeline.Initialize(*device, shaders, *swapChain);
+    Require(initialized, "Rectangle initializes");
+    if (!initialized)
+    {
+        return;
+    }
+    Require(!renderPipeline.Initialize(*device, shaders, *swapChain), "Repeated initialization preserves live resources");
+
+    constexpr float vertices[] { -0.5f, -0.5f, 1, 0, 0, 0.5f, -0.5f, 0, 1, 0, 0, 0.5f, 0, 0, 1 };
+    constexpr uint32_t indices[] { 0, 1, 2 };
+    const auto vertexBytes = std::as_bytes(std::span { vertices });
+    vertexBuffer = device->CreateBuffer({ .usage = BufferUsage::Vertex, .initialData = vertexBytes });
+    indexBuffer = device->CreateBuffer({ .usage = BufferUsage::Index, .initialData = std::as_bytes(std::span { indices }) });
+    Require(vertexBuffer->GetSize() == sizeof(vertices) && vertexBuffer->GetUsage() == BufferUsage::Vertex, "Buffer preserves size and usage");
+    Require(device->CreateBuffer({}) == nullptr, "Empty upload is rejected");
+    RequireThrows([&] { device->CreateBuffer({ .usage = static_cast<BufferUsage>(-1), .initialData = vertexBytes }); }, "Invalid usage is rejected");
+
+    VertexBinding bindings[] { { .binding = 0, .stride = 20 }, { .binding = 0, .stride = 20 } };
+    VertexAttribute attributes[] { { .location = 0, .binding = 0, .format = Format::R32G32Sfloat }, { .location = 1, .binding = 0, .format = Format::R32G32B32Sfloat, .offset = 8 } };
+    GraphicsPipelineDesc desc { .shaderSpirv = shaders.GetSpirv("Passes/Triangle.spv"), .colorFormat = swapChain->GetColorFormat(), .vertexBindings = bindings, .vertexAttributes = attributes };
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Duplicate vertex bindings are rejected");
+    desc.vertexBindings = std::span { bindings }.first(1);
+    attributes[1].location = 0;
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Duplicate attribute locations are rejected");
+    attributes[1].location = 1;
+    attributes[1].binding = 1;
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Missing attribute binding is rejected");
+    attributes[1].binding = 0;
+    bindings[0].stride = UINT32_MAX;
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Unsupported stride is rejected");
+    bindings[0].stride = 20;
+    pipeline = device->CreateGraphicsPipeline(desc);
+
+    uint32_t rendered = 0;
+    for (uint32_t attempt = 0; attempt < 32 && rendered < 6; ++attempt)
+    {
+        window.PumpEvents();
+        auto* commandBuffer = device->BeginFrame(*swapChain);
+        if (commandBuffer == nullptr)
+        {
+            continue;
+        }
+        RequireThrows([&] { commandBuffer->DrawIndexed(3, 1); }, "Index binding does not leak across recordings");
+        RequireThrows([&] { commandBuffer->SetVertexBuffer(*indexBuffer); }, "Index buffer cannot bind as vertex input");
+        RequireThrows([&] { commandBuffer->SetVertexBuffer(*vertexBuffer, UINT32_MAX); }, "Unsupported vertex binding is rejected");
+        RequireThrows([&] { commandBuffer->SetVertexBuffer(*vertexBuffer, 0, vertexBuffer->GetSize()); }, "End-of-buffer vertex offset is rejected");
+        RequireThrows([&] { commandBuffer->SetIndexBuffer(*vertexBuffer, IndexType::UInt16); }, "Vertex buffer cannot bind as index input");
+        RequireThrows([&] { commandBuffer->SetIndexBuffer(*indexBuffer, IndexType::UInt16, 1); }, "Misaligned UInt16 offset is rejected");
+        RequireThrows([&] { commandBuffer->SetIndexBuffer(*indexBuffer, IndexType::UInt32, 2); }, "Misaligned UInt32 offset is rejected");
+        RequireThrows([&] { commandBuffer->SetIndexBuffer(*indexBuffer, static_cast<IndexType>(-1)); }, "Invalid index type is rejected");
+        commandBuffer->SetIndexBuffer(*indexBuffer, IndexType::UInt32, sizeof(uint32_t));
+        RequireThrows([&] { commandBuffer->DrawIndexed(3, 1); }, "Index range honors binding offset");
+
+        if (rendered % 2 == 0)
+        {
+            renderPipeline.Render(*commandBuffer, *swapChain);
+        }
+        else
+        {
+            const auto extent = swapChain->GetExtent();
+            commandBuffer->TransitionToColorTarget();
+            commandBuffer->BeginRendering({ .r = 0.08f, .g = 0.08f, .b = 0.10f, .a = 1 });
+            commandBuffer->SetPipeline(*pipeline);
+            commandBuffer->SetViewport({ .width = static_cast<float>(extent.width), .height = static_cast<float>(extent.height) });
+            commandBuffer->SetScissor({ .width = extent.width, .height = extent.height });
+            commandBuffer->SetVertexBuffer(*vertexBuffer);
+            commandBuffer->SetIndexBuffer(*indexBuffer, IndexType::UInt32);
+            commandBuffer->DrawIndexed(3, 1);
+            commandBuffer->EndRendering();
+            commandBuffer->TransitionToPresent();
+        }
+        device->EndFrame(*swapChain);
+        ++rendered;
+        if (rendered == 3)
+        {
+            swapChain->Resize(window.GetWidth(), window.GetHeight());
+        }
+    }
+    Require(rendered == 6, "UInt16 and UInt32 draws survive frame-slot reuse and swapchain recreation");
+    device->WaitIdle();
+    renderPipeline.Shutdown();
+    Require(renderPipeline.Initialize(*device, shaders, *swapChain), "Render pipeline reinitializes after shutdown");
+}
 }
 
 /// Runs the SnowyArk test executable.
-int main()
+int main(const int argc, char* argv[])
 {
     using namespace SnowyArk;
+
+    if (argc == 2 && std::string_view(argv[1]) == "--gpu")
+    {
+        try
+        {
+            TestRunner::RunGpuChecks();
+        }
+        catch (const std::exception& exception)
+        {
+            Log::Error(exception.what());
+            TestRunner::Require(false, "GPU regression completed without unexpected exceptions");
+        }
+        return TestRunner::FailureCount() == 0 ? 0 : 1;
+    }
 
     const AcquiredFrameAction success = AcquiredFrameAction::Decide(SwapChainAcquireStatus::Success, 2);
     TestRunner::Require(success.recordAndPresent && !success.requestRecreation && success.imageIndex == 2, "Success acquire records the image");

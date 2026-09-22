@@ -1,12 +1,14 @@
 #include <Runtime/GAL/Vulkan/VulkanCommandBuffer.h>
 
+#include <Runtime/Core/Log.h>
+#include <Runtime/GAL/Vulkan/VulkanBuffer.h>
 #include <Runtime/GAL/Vulkan/VulkanPipelineState.h>
 
 namespace SnowyArk
 {
 
-VulkanCommandBuffer::VulkanCommandBuffer(const vk::CommandBuffer commandBuffer)
-    : m_CommandBuffer(commandBuffer)
+VulkanCommandBuffer::VulkanCommandBuffer(const vk::CommandBuffer commandBuffer, const vk::Device device, const uint32_t maxVertexBindings)
+    : m_Device(device), m_MaxVertexBindings(maxVertexBindings), m_CommandBuffer(commandBuffer)
 {
 }
 
@@ -15,6 +17,7 @@ void VulkanCommandBuffer::BindTarget(const vk::Image image, const vk::ImageView 
     m_Image = image;
     m_ImageView = imageView;
     m_Extent = extent;
+    m_BoundIndexCount = 0;
 }
 
 vk::CommandBuffer VulkanCommandBuffer::GetHandle() const
@@ -125,9 +128,60 @@ void VulkanCommandBuffer::SetScissor(const Rect2D& scissor)
     m_CommandBuffer.setScissor(0, vkScissor);
 }
 
+void VulkanCommandBuffer::SetVertexBuffer(const Buffer& buffer, const uint32_t binding, const uint64_t offset)
+{
+    const auto& vulkanBuffer = dynamic_cast<const VulkanBuffer&>(buffer);
+    if (vulkanBuffer.GetDevice() != m_Device || buffer.GetUsage() != BufferUsage::Vertex || binding >= m_MaxVertexBindings || offset >= buffer.GetSize())
+    {
+        Log::Fatal("Vertex buffer binding requires the same device, Vertex usage, a supported binding, and an in-range offset.");
+    }
+    const vk::DeviceSize vkOffset = offset;
+    m_CommandBuffer.bindVertexBuffers(binding, vulkanBuffer.GetHandle(), vkOffset);
+}
+
+void VulkanCommandBuffer::SetIndexBuffer(const Buffer& buffer, const IndexType indexType, const uint64_t offset)
+{
+    const auto& vulkanBuffer = dynamic_cast<const VulkanBuffer&>(buffer);
+    if (vulkanBuffer.GetDevice() != m_Device || buffer.GetUsage() != BufferUsage::Index || offset >= buffer.GetSize())
+    {
+        Log::Fatal("Index buffer binding requires the same device, Index usage, and an in-range offset.");
+    }
+
+    vk::IndexType vkIndexType = vk::IndexType::eUint16;
+    uint64_t indexSize = 0;
+    switch (indexType)
+    {
+    case IndexType::UInt16:
+        vkIndexType = vk::IndexType::eUint16;
+        indexSize = sizeof(uint16_t);
+        break;
+    case IndexType::UInt32:
+        vkIndexType = vk::IndexType::eUint32;
+        indexSize = sizeof(uint32_t);
+        break;
+    default:
+        Log::Fatal("Unsupported index type.");
+    }
+    if (offset % indexSize != 0 || buffer.GetSize() - offset < indexSize)
+    {
+        Log::Fatal("Index buffer offset must be aligned and leave at least one complete index.");
+    }
+    m_CommandBuffer.bindIndexBuffer(vulkanBuffer.GetHandle(), offset, vkIndexType);
+    m_BoundIndexCount = (buffer.GetSize() - offset) / indexSize;
+}
+
 void VulkanCommandBuffer::Draw(const uint32_t vertexCount, const uint32_t instanceCount)
 {
     m_CommandBuffer.draw(vertexCount, instanceCount, 0, 0);
+}
+
+void VulkanCommandBuffer::DrawIndexed(const uint32_t indexCount, const uint32_t instanceCount)
+{
+    if (m_BoundIndexCount == 0 || indexCount > m_BoundIndexCount)
+    {
+        Log::Fatal("Indexed draw requires a bound index buffer with enough indices.");
+    }
+    m_CommandBuffer.drawIndexed(indexCount, instanceCount, 0, 0, 0);
 }
 
 }
