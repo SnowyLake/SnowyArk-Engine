@@ -11,13 +11,16 @@ enum class BufferUsage
 {
     Vertex,
     Index,
+    Uniform,
 };
 
 struct BufferDesc
 {
     BufferUsage usage = BufferUsage::Vertex;
-    /// Borrowed only for CreateBuffer. Copied into device-local memory before the call returns. Must be non-empty.
+    /// Borrowed only for CreateBuffer. Vertex and Index require non-empty data; Uniform may start zero-initialized.
     std::span<const std::byte> initialData;
+    /// Uniform allocation size; must be nonzero. Vertex and Index derive their size from initialData.
+    uint64_t size = 0;
 };
 
 class Buffer
@@ -28,6 +31,10 @@ public:
 
     /// Destroys the buffer. The caller must already have waited out any GPU use, and the creating device must still be alive.
     virtual ~Buffer() = default;
+
+    /// Copies bytes into a Uniform buffer. Throws for other usages or out-of-range writes.
+    /// The caller must wait for all GPU reads before writing, including draws recorded but not yet submitted.
+    virtual void Write(std::span<const std::byte> data, uint64_t offset = 0) = 0;
 
     /// Returns the buffer's byte size, excluding allocation padding.
     uint64_t GetSize() const

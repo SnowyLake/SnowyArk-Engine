@@ -1,3 +1,12 @@
+struct RenderTransforms
+{
+    row_major float4x4 model;
+    row_major float4x4 view;
+    row_major float4x4 projection;
+};
+
+[[vk::binding(0, 0)]] ConstantBuffer<RenderTransforms> _Transforms;
+
 struct VertexInput
 {
     [[vk::location(0)]] float2 position;
@@ -14,7 +23,7 @@ struct VertexOutput
 VertexOutput MainVertex(VertexInput input)
 {
     VertexOutput output;
-    output.sv_position = float4(input.position, 0.0, 1.0);
+    output.sv_position = mul(_Transforms.projection, mul(_Transforms.view, mul(_Transforms.model, float4(input.position, 0.0, 1.0))));
     output.color = input.color;
     return output;
 }

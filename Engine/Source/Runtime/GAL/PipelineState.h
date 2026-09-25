@@ -8,6 +8,25 @@
 namespace SnowyArk
 {
 
+enum class ShaderStages
+{
+    Vertex,
+    Fragment,
+    VertexAndFragment,
+};
+
+struct UniformBinding
+{
+    uint32_t binding = 0;
+    ShaderStages stages = ShaderStages::Vertex;
+};
+
+enum class FrontFace
+{
+    Clockwise,
+    CounterClockwise,
+};
+
 struct VertexBinding
 {
     uint32_t binding = 0;
@@ -34,6 +53,9 @@ struct GraphicsPipelineDesc
     std::span<const VertexBinding> vertexBindings;
     /// Borrowed for the duration of CreateGraphicsPipeline. Locations must match the vertex shader inputs.
     std::span<const VertexAttribute> vertexAttributes;
+    /// Set 0 uniform bindings, borrowed only during creation. Empty means no resource set is required.
+    std::span<const UniformBinding> uniformBindings;
+    FrontFace frontFace = FrontFace::Clockwise;
 };
 
 class PipelineState

@@ -17,6 +17,7 @@
 #include <Runtime/GAL/PipelineState.h>
 #include <Runtime/GAL/Vulkan/VulkanBuffer.h>
 #include <Runtime/GAL/Vulkan/VulkanPipelineState.h>
+#include <Runtime/GAL/Vulkan/VulkanResourceSet.h>
 #include <Runtime/GAL/Vulkan/VulkanSwapChain.h>
 #include <Runtime/GAL/Vulkan/VulkanUtils.h>
 #include <Runtime/Platform/Window.h>
@@ -120,12 +121,16 @@ std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const Graphi
     };
     constexpr vk::PipelineInputAssemblyStateCreateInfo inputAssembly { .topology = vk::PrimitiveTopology::eTriangleList };
     constexpr vk::PipelineViewportStateCreateInfo viewportState { .viewportCount = 1, .scissorCount = 1 };
-    constexpr vk::PipelineRasterizationStateCreateInfo rasterizer {
+    if (desc.frontFace != FrontFace::Clockwise && desc.frontFace != FrontFace::CounterClockwise)
+    {
+        Log::Fatal("Unsupported front-face winding.");
+    }
+    const vk::PipelineRasterizationStateCreateInfo rasterizer {
         .depthClampEnable = vk::False,
         .rasterizerDiscardEnable = vk::False,
         .polygonMode = vk::PolygonMode::eFill,
         .cullMode = vk::CullModeFlagBits::eBack,
-        .frontFace = vk::FrontFace::eClockwise,
+        .frontFace = desc.frontFace == FrontFace::Clockwise ? vk::FrontFace::eClockwise : vk::FrontFace::eCounterClockwise,
         .depthBiasEnable = vk::False,
         .lineWidth = 1.0f,
     };
@@ -144,7 +149,51 @@ std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const Graphi
         .dynamicStateCount = 2,
         .pDynamicStates = dynamicStates,
     };
-    constexpr vk::PipelineLayoutCreateInfo pipelineLayoutInfo {};
+    std::vector<vk::DescriptorSetLayoutBinding> resourceBindings;
+    uint32_t vertexUniforms = 0;
+    uint32_t fragmentUniforms = 0;
+    for (const auto& binding : desc.uniformBindings)
+    {
+        if (std::ranges::any_of(resourceBindings, [&](const auto& other) { return other.binding == binding.binding; }))
+        {
+            Log::Fatal("Duplicate uniform binding.");
+        }
+        vk::ShaderStageFlags visibility;
+        switch (binding.stages)
+        {
+        case ShaderStages::Vertex:
+            visibility = vk::ShaderStageFlagBits::eVertex;
+            ++vertexUniforms;
+            break;
+        case ShaderStages::Fragment:
+            visibility = vk::ShaderStageFlagBits::eFragment;
+            ++fragmentUniforms;
+            break;
+        case ShaderStages::VertexAndFragment:
+            visibility = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+            ++vertexUniforms;
+            ++fragmentUniforms;
+            break;
+        default:
+            Log::Fatal("Unsupported uniform shader stages.");
+        }
+        resourceBindings.push_back({ .binding = binding.binding, .descriptorType = vk::DescriptorType::eUniformBuffer, .descriptorCount = 1, .stageFlags = visibility });
+    }
+    if (resourceBindings.size() > limits.maxDescriptorSetUniformBuffers || vertexUniforms > limits.maxPerStageDescriptorUniformBuffers ||
+        fragmentUniforms > limits.maxPerStageDescriptorUniformBuffers || vertexUniforms > limits.maxPerStageResources || fragmentUniforms > limits.maxPerStageResources)
+    {
+        Log::Fatal("Uniform layout exceeds device descriptor limits.");
+    }
+    vk::raii::DescriptorSetLayout resourceLayout = nullptr;
+    if (!resourceBindings.empty())
+    {
+        resourceLayout =
+            vk::raii::DescriptorSetLayout(m_Device, vk::DescriptorSetLayoutCreateInfo { .bindingCount = static_cast<uint32_t>(resourceBindings.size()), .pBindings = resourceBindings.data() });
+    }
+    const vk::PipelineLayoutCreateInfo pipelineLayoutInfo {
+        .setLayoutCount = resourceBindings.empty() ? 0u : 1u,
+        .pSetLayouts = resourceBindings.empty() ? nullptr : &*resourceLayout,
+    };
     vk::raii::PipelineLayout pipelineLayout(m_Device, pipelineLayoutInfo);
 
     const vk::Format colorFormat = VulkanUtils::ToVkFormat(desc.colorFormat);
@@ -168,11 +217,23 @@ std::unique_ptr<PipelineState> VulkanDevice::CreateGraphicsPipeline(const Graphi
     };
 
     vk::raii::Pipeline pipeline(m_Device, nullptr, pipelineInfo);
-    return std::make_unique<VulkanPipelineState>(std::move(pipelineLayout), std::move(pipeline));
+    return std::make_unique<VulkanPipelineState>(std::move(resourceLayout), std::move(pipelineLayout), std::move(pipeline),
+                                                 std::vector<UniformBinding>(desc.uniformBindings.begin(), desc.uniformBindings.end()));
 }
 
 std::unique_ptr<Buffer> VulkanDevice::CreateBuffer(const BufferDesc& desc)
 {
+    if (desc.usage == BufferUsage::Uniform)
+    {
+        if (desc.size == 0 || desc.size > m_PhysicalDevice.getProperties().limits.maxUniformBufferRange || desc.initialData.size_bytes() > desc.size)
+        {
+            Log::Fatal("Uniform buffer requires a nonzero size within maxUniformBufferRange and initial data that fits.");
+        }
+        auto allocation = CreateAllocatedBuffer(desc.size, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        auto buffer = std::make_unique<VulkanBuffer>(std::move(allocation.memory), std::move(allocation.buffer), desc.size, desc.usage);
+        buffer->Write(desc.initialData, 0);
+        return buffer;
+    }
     if (desc.initialData.empty())
     {
         Log::Error("Buffer initial data is empty.");
@@ -207,6 +268,50 @@ std::unique_ptr<Buffer> VulkanDevice::CreateBuffer(const BufferDesc& desc)
     AllocatedBuffer deviceBuffer = CreateAllocatedBuffer(size, usage, vk::MemoryPropertyFlagBits::eDeviceLocal);
     CopyBuffer(*staging.buffer, *deviceBuffer.buffer, size, dstStage, dstAccess);
     return std::make_unique<VulkanBuffer>(std::move(deviceBuffer.memory), std::move(deviceBuffer.buffer), size, desc.usage);
+}
+
+std::unique_ptr<ResourceSet> VulkanDevice::CreateResourceSet(const PipelineState& pipeline, const std::span<const UniformBufferBinding> bindings)
+{
+    const auto* vulkanPipeline = dynamic_cast<const VulkanPipelineState*>(&pipeline);
+    if (vulkanPipeline == nullptr || vulkanPipeline->GetDevice() != *m_Device || bindings.empty() || bindings.size() != vulkanPipeline->GetUniformBindings().size())
+    {
+        Log::Fatal("Resource set requires a same-device pipeline and exactly its non-empty uniform layout.");
+    }
+    const auto limits = m_PhysicalDevice.getProperties().limits;
+    std::vector<vk::DescriptorBufferInfo> bufferInfos;
+    bufferInfos.reserve(bindings.size());
+    for (std::size_t index = 0; index < bindings.size(); ++index)
+    {
+        const auto& binding = bindings[index];
+        const auto* buffer = dynamic_cast<const VulkanBuffer*>(binding.buffer);
+        if (buffer == nullptr || buffer->GetDevice() != *m_Device || buffer->GetUsage() != BufferUsage::Uniform || binding.size == 0 || binding.size > limits.maxUniformBufferRange ||
+            binding.offset % limits.minUniformBufferOffsetAlignment != 0 || binding.offset > buffer->GetSize() || binding.size > buffer->GetSize() - binding.offset ||
+            std::ranges::none_of(vulkanPipeline->GetUniformBindings(), [&](const auto& entry) { return entry.binding == binding.binding; }) ||
+            std::ranges::any_of(bindings.first(index), [&](const auto& previous) { return previous.binding == binding.binding; }))
+        {
+            Log::Fatal("Invalid uniform binding: check layout, device, usage, alignment and byte range.");
+        }
+        bufferInfos.push_back({ .buffer = buffer->GetHandle(), .offset = binding.offset, .range = binding.size });
+    }
+    const vk::DescriptorPoolSize poolSize { .type = vk::DescriptorType::eUniformBuffer, .descriptorCount = static_cast<uint32_t>(bindings.size()) };
+    // ponytail: one pool per immutable resource set; share pools when material counts make pool creation significant.
+    vk::raii::DescriptorPool pool(m_Device, vk::DescriptorPoolCreateInfo { .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet, .maxSets = 1, .poolSizeCount = 1, .pPoolSizes = &poolSize });
+    const auto layout = vulkanPipeline->GetResourceLayout();
+    auto sets = m_Device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo { .descriptorPool = *pool, .descriptorSetCount = 1, .pSetLayouts = &layout });
+    std::vector<vk::WriteDescriptorSet> writes;
+    writes.reserve(bindings.size());
+    for (std::size_t index = 0; index < bindings.size(); ++index)
+    {
+        writes.push_back(
+            { .dstSet = *sets.front(), .dstBinding = bindings[index].binding, .descriptorCount = 1, .descriptorType = vk::DescriptorType::eUniformBuffer, .pBufferInfo = &bufferInfos[index] });
+    }
+    m_Device.updateDescriptorSets(writes, {});
+    return std::make_unique<VulkanResourceSet>(*vulkanPipeline, std::move(pool), std::move(sets.front()));
+}
+
+uint32_t VulkanDevice::GetFrameCount() const
+{
+    return k_MaxFramesInFlight;
 }
 
 CommandBuffer* VulkanDevice::BeginFrame(SwapChain& swapChain)
@@ -580,7 +685,7 @@ void VulkanDevice::CreateFrameResources()
     m_CommandBuffers.reserve(k_MaxFramesInFlight);
     for (uint32_t index = 0; index < k_MaxFramesInFlight; ++index)
     {
-        m_CommandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(m_VkCommandBuffers[index], *m_Device, m_PhysicalDevice.getProperties().limits.maxVertexInputBindings));
+        m_CommandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(m_VkCommandBuffers[index], *m_Device, m_PhysicalDevice.getProperties().limits.maxVertexInputBindings, index));
         m_ImageAvailableSemaphores.emplace_back(m_Device, vk::SemaphoreCreateInfo {});
         m_InFlightFences.emplace_back(m_Device, vk::FenceCreateInfo { .flags = vk::FenceCreateFlagBits::eSignaled });
     }

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -22,9 +23,11 @@
 #include <Runtime/GAL/FrameBegin.h>
 #include <Runtime/GAL/GraphicsDevice.h>
 #include <Runtime/GAL/PipelineState.h>
+#include <Runtime/GAL/ResourceSet.h>
 #include <Runtime/GAL/SwapChain.h>
 #include <Runtime/Platform/Window.h>
 #include <Runtime/RenderPipeline/RenderPipeline.h>
+#include <Runtime/RenderPipeline/RenderTransforms.h>
 #include <Runtime/Shader/ShaderLibrary.h>
 
 namespace SnowyArk
@@ -62,6 +65,9 @@ public:
 
     /// Runs opt-in Vulkan checks through GAL, including uploads, invalid input, frame-slot reuse, and swapchain recreation.
     static void RunGpuChecks();
+
+    /// Checks the pass's row-major transform convention, camera, aspect ratio, and zero-to-one depth.
+    static void RunTransformChecks();
 
     /// Checks that a rejected operation reports a runtime error instead of recording invalid GPU work.
     template <typename Operation> static void RequireThrows(Operation operation, const char* name)
@@ -194,6 +200,9 @@ void TestRunner::RunGpuChecks()
     std::unique_ptr<Buffer> vertexBuffer;
     std::unique_ptr<Buffer> indexBuffer;
     std::unique_ptr<PipelineState> pipeline;
+    std::unique_ptr<PipelineState> otherPipeline;
+    std::vector<std::unique_ptr<Buffer>> uniformBuffers;
+    std::vector<std::unique_ptr<ResourceSet>> resourceSets;
     GpuCleanupWait cleanup { *device };
     const bool initialized = renderPipeline.Initialize(*device, shaders, *swapChain);
     Require(initialized, "Rectangle initializes");
@@ -211,6 +220,10 @@ void TestRunner::RunGpuChecks()
     Require(vertexBuffer->GetSize() == sizeof(vertices) && vertexBuffer->GetUsage() == BufferUsage::Vertex, "Buffer preserves size and usage");
     Require(device->CreateBuffer({}) == nullptr, "Empty upload is rejected");
     RequireThrows([&] { device->CreateBuffer({ .usage = static_cast<BufferUsage>(-1), .initialData = vertexBytes }); }, "Invalid usage is rejected");
+    RequireThrows([&] { vertexBuffer->Write(vertexBytes); }, "Static buffers reject host writes");
+    RequireThrows([&] { device->CreateBuffer({ .usage = BufferUsage::Uniform }); }, "Zero uniform size is rejected");
+    RequireThrows([&] { device->CreateBuffer({ .usage = BufferUsage::Uniform, .size = UINT64_MAX }); }, "Oversized uniform buffer is rejected");
+    RequireThrows([&] { device->CreateBuffer({ .usage = BufferUsage::Uniform, .initialData = vertexBytes, .size = 1 }); }, "Oversized initial uniform data is rejected");
 
     VertexBinding bindings[] { { .binding = 0, .stride = 20 }, { .binding = 0, .stride = 20 } };
     VertexAttribute attributes[] { { .location = 0, .binding = 0, .format = Format::R32G32Sfloat }, { .location = 1, .binding = 0, .format = Format::R32G32B32Sfloat, .offset = 8 } };
@@ -226,10 +239,55 @@ void TestRunner::RunGpuChecks()
     bindings[0].stride = UINT32_MAX;
     RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Unsupported stride is rejected");
     bindings[0].stride = 20;
+    UniformBinding uniformLayout[] { { .binding = 0 }, { .binding = 0 } };
+    desc.uniformBindings = uniformLayout;
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Duplicate uniform bindings are rejected");
+    desc.uniformBindings = std::span { uniformLayout }.first(1);
+    uniformLayout[0].stages = static_cast<ShaderStages>(-1);
+    RequireThrows([&] { device->CreateGraphicsPipeline(desc); }, "Invalid shader stages are rejected");
+    uniformLayout[0].stages = ShaderStages::Vertex;
     pipeline = device->CreateGraphicsPipeline(desc);
+    uniformLayout[1] = { .binding = 7, .stages = ShaderStages::Fragment };
+    desc.uniformBindings = uniformLayout;
+    otherPipeline = device->CreateGraphicsPipeline(desc);
+    Require(device->GetFrameCount() > 0, "Device exposes in-flight slots");
+    for (uint32_t index = 0; index < device->GetFrameCount(); ++index)
+    {
+        uniformBuffers.push_back(device->CreateBuffer({ .usage = BufferUsage::Uniform, .size = sizeof(RenderTransforms) }));
+        auto& buffer = *uniformBuffers.back();
+        Require(buffer.GetSize() == sizeof(RenderTransforms) && buffer.GetUsage() == BufferUsage::Uniform, "Uniform metadata is preserved");
+        RequireThrows([&] { buffer.Write(vertexBytes, buffer.GetSize()); }, "Uniform write cannot exceed allocation");
+        RequireThrows([&] { buffer.Write({}, UINT64_MAX); }, "Overflowing uniform offset is rejected");
+        buffer.Write({}, buffer.GetSize());
+        UniformBufferBinding entry { .binding = 0, .buffer = &buffer, .size = sizeof(RenderTransforms) };
+        const auto entries = std::span { &entry, 1 };
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, {}); }, "Missing uniform binding is rejected");
+        entry.buffer = nullptr;
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Null uniform buffer is rejected");
+        entry.buffer = vertexBuffer.get();
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Vertex usage in a uniform set is rejected");
+        entry.buffer = &buffer;
+        entry.binding = 1;
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Unknown uniform binding is rejected");
+        entry.binding = 0;
+        entry.offset = 1;
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Misaligned or out-of-range uniform offset is rejected");
+        entry.offset = 0;
+        entry.size = 0;
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Zero descriptor range is rejected");
+        entry.size = UINT64_MAX;
+        RequireThrows([&] { device->CreateResourceSet(*pipeline, entries); }, "Overflowing descriptor range is rejected");
+        entry.size = sizeof(RenderTransforms);
+        resourceSets.push_back(device->CreateResourceSet(*pipeline, entries));
+        UniformBufferBinding multiple[] { entry, entry };
+        RequireThrows([&] { device->CreateResourceSet(*otherPipeline, multiple); }, "Duplicate resources cannot hide a missing binding");
+        multiple[0].binding = 7;
+        const auto multipleSet = device->CreateResourceSet(*otherPipeline, multiple);
+        Require(multipleSet != nullptr, "Resource entries can use arbitrary binding order and shader stages");
+    }
 
     uint32_t rendered = 0;
-    for (uint32_t attempt = 0; attempt < 32 && rendered < 6; ++attempt)
+    for (uint32_t attempt = 0; attempt < 32 && rendered < 8; ++attempt)
     {
         window.PumpEvents();
         auto* commandBuffer = device->BeginFrame(*swapChain);
@@ -237,8 +295,23 @@ void TestRunner::RunGpuChecks()
         {
             continue;
         }
+        RequireThrows([&] { commandBuffer->Draw(3, 1); }, "Pipeline state does not leak across recordings");
+        const auto slot = commandBuffer->GetFrameIndex();
+        Require(slot < device->GetFrameCount(), "Frame slot is within resource allocation");
+        auto transforms = RenderTransforms::Create(static_cast<float>(rendered) * 0.25f, swapChain->GetExtent());
+        uniformBuffers.at(slot)->Write(std::as_bytes(std::span { &transforms, 1 }));
+        RequireThrows([&] { commandBuffer->SetResourceSet(*resourceSets.at(slot)); }, "Pipeline binding does not leak across recordings");
+        commandBuffer->SetPipeline(*otherPipeline);
+        RequireThrows([&] { commandBuffer->SetResourceSet(*resourceSets.at(slot)); }, "Sets from another pipeline are rejected");
+        commandBuffer->SetPipeline(*pipeline);
+        RequireThrows([&] { commandBuffer->Draw(3, 1); }, "Draw requires declared uniform resources");
+        commandBuffer->SetResourceSet(*resourceSets.at(slot));
+        commandBuffer->SetPipeline(*pipeline);
+        RequireThrows([&] { commandBuffer->Draw(3, 1); }, "Pipeline rebinding clears uniform state");
+        commandBuffer->SetResourceSet(*resourceSets.at(slot));
         RequireThrows([&] { commandBuffer->DrawIndexed(3, 1); }, "Index binding does not leak across recordings");
         RequireThrows([&] { commandBuffer->SetVertexBuffer(*indexBuffer); }, "Index buffer cannot bind as vertex input");
+        RequireThrows([&] { commandBuffer->SetVertexBuffer(*uniformBuffers.at(slot)); }, "Uniform buffer cannot bind as vertex input");
         RequireThrows([&] { commandBuffer->SetVertexBuffer(*vertexBuffer, UINT32_MAX); }, "Unsupported vertex binding is rejected");
         RequireThrows([&] { commandBuffer->SetVertexBuffer(*vertexBuffer, 0, vertexBuffer->GetSize()); }, "End-of-buffer vertex offset is rejected");
         RequireThrows([&] { commandBuffer->SetIndexBuffer(*vertexBuffer, IndexType::UInt16); }, "Vertex buffer cannot bind as index input");
@@ -248,7 +321,7 @@ void TestRunner::RunGpuChecks()
         commandBuffer->SetIndexBuffer(*indexBuffer, IndexType::UInt32, sizeof(uint32_t));
         RequireThrows([&] { commandBuffer->DrawIndexed(3, 1); }, "Index range honors binding offset");
 
-        if (rendered % 2 == 0)
+        if ((rendered / device->GetFrameCount()) % 2 == 0)
         {
             renderPipeline.Render(*commandBuffer, *swapChain);
         }
@@ -258,6 +331,7 @@ void TestRunner::RunGpuChecks()
             commandBuffer->TransitionToColorTarget();
             commandBuffer->BeginRendering({ .r = 0.08f, .g = 0.08f, .b = 0.10f, .a = 1 });
             commandBuffer->SetPipeline(*pipeline);
+            commandBuffer->SetResourceSet(*resourceSets.at(slot));
             commandBuffer->SetViewport({ .width = static_cast<float>(extent.width), .height = static_cast<float>(extent.height) });
             commandBuffer->SetScissor({ .width = extent.width, .height = extent.height });
             commandBuffer->SetVertexBuffer(*vertexBuffer);
@@ -273,10 +347,30 @@ void TestRunner::RunGpuChecks()
             swapChain->Resize(window.GetWidth(), window.GetHeight());
         }
     }
-    Require(rendered == 6, "UInt16 and UInt32 draws survive frame-slot reuse and swapchain recreation");
+    Require(rendered == 8, "UInt16 and UInt32 draws survive frame-slot reuse and swapchain recreation");
     device->WaitIdle();
     renderPipeline.Shutdown();
     Require(renderPipeline.Initialize(*device, shaders, *swapChain), "Render pipeline reinitializes after shutdown");
+}
+
+void TestRunner::RunTransformChecks()
+{
+    const auto start = RenderTransforms::Create(0, { 800, 400 });
+    const auto rotated = RenderTransforms::Create(1, { 800, 400 });
+    const auto square = RenderTransforms::Create(0, { 400, 400 });
+    const auto close = [](const float a, const float b) { return std::abs(a - b) < 0.00001f; };
+    Require(close(start.model[0], 1) && close(start.model[5], 1), "Model starts at identity");
+    Require(close(rotated.model[0], 0) && close(rotated.model[4], 1) && close(rotated.model[1], -1), "One second rotates X into Y in row-major storage");
+    Require(close(start.projection[0] * 2, square.projection[0]) && close(start.projection[5], square.projection[5]), "Resize changes horizontal perspective only");
+    for (uint32_t row = 0; row < 3; ++row)
+    {
+        const auto* values = start.view + row * 4;
+        Require(close(values[0] * 2 + values[1] * 2 + values[2] * 2 + values[3], 0), "View maps camera to origin");
+    }
+    const auto depth = [&](const float z) { return (start.projection[10] * z + start.projection[11]) / -z; };
+    Require(close(depth(-0.1f), 0) && close(depth(-10), 1), "Perspective maps near/far to zero/one");
+    RequireThrows([] { RenderTransforms::Create(0, { 0, 400 }); }, "Zero extent rejected before projection division");
+    RequireThrows([] { RenderTransforms::Create(std::numeric_limits<float>::infinity(), { 400, 400 }); }, "Non-finite animation time rejected");
 }
 }
 
@@ -284,6 +378,8 @@ void TestRunner::RunGpuChecks()
 int main(const int argc, char* argv[])
 {
     using namespace SnowyArk;
+
+    TestRunner::RunTransformChecks();
 
     if (argc == 2 && std::string_view(argv[1]) == "--gpu")
     {

@@ -10,13 +10,13 @@
 
 ## 上传由设备完成
 
-`GraphicsDevice::CreateBuffer` 接收 `BufferUsage` 和初始字节. `BufferUsage` 目前有 `Vertex` 和 `Index`. Vulkan 后端把这些字节写入 host-visible 且 host-coherent 的暂存缓冲, 再拷到 device-local 缓冲. 拷贝提交到图形队列, 调用返回前等待这次提交的 fence. 图形队列族包含 transfer, 缓冲使用 exclusive sharing. 暂存缓冲留在 Vulkan 后端.
+`GraphicsDevice::CreateBuffer` 接收 `BufferUsage` 和初始字节. 本文说明 `Vertex` 和 `Index` 用途; 动态常量使用独立的 [Uniform 路径](UniformBuffers.md). Vulkan 后端把顶点和索引字节写入 host-visible 且 host-coherent 的暂存缓冲, 再拷到 device-local 缓冲. 拷贝提交到图形队列, 调用返回前等待这次提交的 fence. 图形队列族包含 transfer, 缓冲使用 exclusive sharing. 暂存缓冲留在 Vulkan 后端.
 
 GAL 约定调用成功返回时初始数据已可用于绘制, 不暴露队列和 fence. Vulkan 后端用同步屏障把 transfer write 对后续 vertex attribute / index read 可见. 空数据返回空指针, 无效 usage 和后端故障抛出异常. 上传提交后若 fence 等待失败, 在局部资源析构前尽力等待设备空闲, 再传播异常进入应用关闭路径; 设备丢失时仍按既定策略清理, 不继续绘制.
 
 `initialData` 只在这次调用期间借用. 返回的 `Buffer` 必须在创建它的 `GraphicsDevice` 销毁之前释放, 并且释放前 GPU 对这块缓冲的使用已经结束. `Application::Shutdown` 先 `WaitIdle`, 再由 `RenderPipeline::Shutdown` 释放缓冲和管线, 此时设备仍然存活.
 
-这次等待发生在创建缓冲时, 也可能受图形队列中此前提交的工作影响. 当前矩形的两个缓冲在初始化时创建, 不在每帧路径上增加分配或等待. 当前接口用于静态数据初始化; 出现运行时批量上传或动态更新需求时, 再增加批量上传与完成状态管理.
+这次等待发生在创建缓冲时, 也可能受图形队列中此前提交的工作影响. 当前矩形的两个几何缓冲在初始化时创建, 不在每帧路径上增加分配或等待. Vertex / Index 上传用于静态数据初始化; 出现运行时批量上传需求时, 再增加批量上传与完成状态管理.
 
 ## 顶点布局写在管线描述里
 
@@ -32,7 +32,7 @@ GAL 约定调用成功返回时初始数据已可用于绘制, 不暴露队列�
 
 ## 每个缓冲单独分配内存
 
-每个 `Buffer` 对应一次 `vkAllocateMemory`. `maxMemoryAllocationCount` 的下限是 4096. 缓冲数量上去之后再改为子分配. 当前只有一块顶点缓冲和一块索引缓冲.
+每个 `Buffer` 对应一次 `vkAllocateMemory`. `maxMemoryAllocationCount` 的下限是 4096. 缓冲数量上去之后再改为子分配. 当前几何使用一块顶点缓冲和一块索引缓冲, 各帧槽的 Uniform 缓冲另行分配.
 
 ## 矩形示例
 
@@ -40,7 +40,7 @@ GAL 约定调用成功返回时初始数据已可用于绘制, 不暴露队列�
 
 `RenderPipeline::Initialize` 在已持有资源时返回 false, 避免替换仍被 GPU 使用的对象. 重新初始化前, 调用方先完成 GPU 等待, 再调用 `Shutdown`. GPU 回归覆盖范围和运行命令见 [编译与测试](../Building.md#编译与测试).
 
-视口高度为正, framebuffer 的 y 向下, NDC 的 y=-1 在窗口上方. 左上 `(-0.5, -0.5)` 是红, 右上 `(0.5, -0.5)` 是绿, 右下 `(0.5, 0.5)` 是蓝, 左下 `(-0.5, 0.5)` 是白.
+顶点的局部坐标和颜色保持不变: `(-0.5, -0.5)` 是红, `(0.5, -0.5)` 是绿, `(0.5, 0.5)` 是蓝, `(-0.5, 0.5)` 是白. 屏幕位置由 MVP 和视口变换决定, 见 [矩阵与画面](UniformBuffers.md#矩阵与画面).
 
 不采用的方案:
 

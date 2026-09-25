@@ -9,6 +9,7 @@ namespace SnowyArk
 
 class Buffer;
 class PipelineState;
+class ResourceSet;
 
 class CommandBuffer
 {
@@ -16,6 +17,10 @@ public:
     CommandBuffer(const CommandBuffer&) = delete;
     CommandBuffer& operator=(const CommandBuffer&) = delete;
     virtual ~CommandBuffer() = default;
+
+    /// Returns the slot whose previous GPU work BeginFrame has waited for, not the swapchain image index.
+    /// Only valid for this successful BeginFrame recording, until EndFrame, the next BeginFrame, recreation or shutdown.
+    virtual uint32_t GetFrameIndex() const = 0;
 
     /// Transitions the current swapchain image to a color attachment layout.
     virtual void TransitionToColorTarget() = 0;
@@ -31,6 +36,11 @@ public:
 
     /// Binds a graphics pipeline for subsequent draw calls.
     virtual void SetPipeline(const PipelineState& pipelineState) = 0;
+
+    /// Binds immutable set 0 resources for the currently bound creating pipeline; incompatible sets throw.
+    /// Set, pipeline and buffers must remain alive and uniform contents unchanged until GPU completion.
+    /// SetPipeline clears resource binding state; rebind before drawing a pipeline with uniforms.
+    virtual void SetResourceSet(const ResourceSet& resources) = 0;
 
     /// Sets the dynamic viewport.
     virtual void SetViewport(const Viewport& viewport) = 0;

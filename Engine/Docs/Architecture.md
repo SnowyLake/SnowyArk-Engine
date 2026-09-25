@@ -13,7 +13,7 @@
 
 ## 目标
 
-SnowyArk 用于实时渲染的学习和实验. 当前编辑器可以打开窗口, 并用顶点缓冲和索引缓冲画彩色矩形. 本文说明代码应放在哪里, 以及各模块已经承担和后续实现时应承担的职责.
+SnowyArk 用于实时渲染的学习和实验. 当前编辑器可以打开窗口, 用顶点和索引缓冲绘制矩形, 通过逐帧更新的 Uniform 矩阵完成透视和旋转. 本文说明代码应放在哪里, 以及各模块已经承担和后续实现时应承担的职责.
 
 项目使用 CMake 和 C++20. 编译选项见 [CMake 维护](Building.md#cmake-维护), 命名和注释要求见 [代码约定](../../AGENTS.md#代码约定).
 
@@ -98,10 +98,10 @@ Engine 和每个 `Samples/<Name>/` 分别维护 CMake 入口, Preset 和 `Build/
 | `Core/` | 不依赖其他引擎模块的基础设施, 目前有日志, 可执行文件路径, 以及关闭时的 GPU 等待辅助 |
 | `Application/` | 运行时子系统的初始化, 每帧推进 (Tick), 关闭与资源释放. Tick 不等待窗口事件; BeginFrame 返回空指针时跳过 Render / EndFrame |
 | `Platform/` | 通用窗口接口, 含非阻塞 `PumpEvents` 和可阻塞的 `WaitEvents`. Windows 实现当前使用 GLFW, 不使用原生 Win32 窗口 |
-| `GAL/` | Graphics Abstract Layer. 公共头是抽象基类 (`GraphicsDevice`, `SwapChain`, `CommandBuffer`, `PipelineState`, `Buffer`), 由 `GraphicsDevice::Create` 按 `GraphicsBackend` 创建 |
+| `GAL/` | Graphics Abstract Layer. 公共头是抽象基类 (`GraphicsDevice`, `SwapChain`, `CommandBuffer`, `PipelineState`, `Buffer`, `ResourceSet`), 由 `GraphicsDevice::Create` 按 `GraphicsBackend` 创建; 管线描述声明资源布局 |
 | `GAL/Vulkan/` | GAL 的 Vulkan 后端, 唯一允许出现 `vk::*` 的目录 |
 | `Shader/` | 运行时读取 SPIR-V. `ShaderLibrary::Load` 在文件缺失, 大小为 0, 不是 4 字节倍数, 或超出 `size_t` / `streamsize` 可表示范围时返回 false. 源文件是 Slang, 由 CMake 调用 `slangc` 编译 |
-| `RenderPipeline/` | 上层帧级渲染管线. 当前用顶点缓冲和索引缓冲画彩色矩形, 只通过 GAL 虚接口录制 |
+| `RenderPipeline/` | 上层帧级渲染管线. 管理矩形几何和每帧槽的 MVP 缓冲及资源集合, 只通过 GAL 虚接口录制; `RenderTransforms` 构造本 pass 的矩阵 |
 
 这些目录共同构建为 `SnowyArk` 静态库. 新模块先放入对应目录, 有独立构建需求时再拆分 target.
 
@@ -119,7 +119,7 @@ Editor 首版已经有窗口和索引矩形 pass. GUI 框架, 播放模式, `IAp
 
 GAL 用虚函数做后端分发, 等价于小型 RHI. `RenderPipeline` 和 `Application` 只依赖抽象基类. 现在 `GraphicsDevice::Create` 只实现 `GraphicsBackend::Vulkan`. 以后加 D3D 或 OpenGL 时新增 `GAL/<Api>/` 目录和工厂分支, 不改 Pass 录制代码. 不使用 CRTP, 也不把 `GraphicsDevice` typedef 成某个后端. 延迟命令编码和 RHI 线程不在当前范围.
 
-录制对象命名为 `CommandBuffer`. fence, command pool, image view 和缓冲上传留在 Vulkan 后端内部. 顶点缓冲的约定见 [顶点缓冲](Decisions/VertexBuffers.md).
+录制对象命名为 `CommandBuffer`. fence, command pool, image view, descriptor pool 和缓冲上传留在 Vulkan 后端内部. 顶点缓冲的约定见 [顶点缓冲](Decisions/VertexBuffers.md), 资源布局, 帧槽与矩阵约定见 [Uniform 缓冲](Decisions/UniformBuffers.md).
 
 `GraphicsDevice::BeginFrame` 返回非拥有的 `CommandBuffer*`, 有效期到本次 `EndFrame`, 下一次 `BeginFrame`, swapchain 重建或 `Shutdown`. 取图失败, 窗口为零, 或 swapchain 仍待重建时返回空指针; 上层只在非空时调用 `Render` / `EndFrame`. acquire 区分 Success, Suboptimal, OutOfDate. Suboptimal 完成本帧并消费 acquire semaphore, 把重建留到本帧呈现之后. OutOfDate 和零尺寸跳过本帧, 不 reset fence, 也不使用无效 image index. 重建请求在零尺寸期间保留, 窗口恢复后再创建. 新的 image 和 image view 创建成功后再写入成员, 避免只清掉 view 的半成品. 创建会传入 `oldSwapchain`, 失败时旧 swapchain 也可能已退役 (retired), 所以抛出后不能再当可绘制 swapchain 用, 只留给随后的清理.
 

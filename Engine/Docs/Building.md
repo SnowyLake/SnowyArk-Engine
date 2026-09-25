@@ -35,9 +35,11 @@ cmake --build Build/Release
 ctest --preset Release
 ```
 
-启动目标为 `SnowyArkEditor`, 会打开窗口并用索引缓冲画彩色矩形. 可执行文件旁边需要 `Shaders/Passes/Triangle.spv`, 由 CMake 调用 `slangc` 生成并在构建后复制. 其他构建目标的状态见 [当前状态](../../README.md#当前状态).
+启动目标为 `SnowyArkEditor`, 会打开窗口并绘制透视旋转的彩色矩形. 可执行文件旁边需要 `Shaders/Passes/Triangle.spv`, 由 CMake 调用 `slangc` 生成并在构建后复制. 其他构建目标的状态见 [当前状态](../../README.md#当前状态).
 
 `BUILD_TESTING` 控制是否生成 `SnowyArkTests`. test preset 在未发现测试时会报错. 默认测试检查 `AcquiredFrameAction::Decide` 的 Success / Suboptimal / 连续 OutOfDate, `CleanupWait::TryWait` 在成功, `std::exception` 和非 `std::exception` 时不向外抛出, `Window::Create` 拒绝宽或高为 0 以及大于 `INT_MAX` 的初始尺寸 (这些路径不调用 `glfwInit`), 以及 `ShaderLibrary::Load` 在独占探测子目录中拒绝缺失 / 空 / 非 4 字节倍数文件, 并检查同路径再次 Load 会替换内容.
+
+矩阵回归检查行主序旋转, 固定相机的位置变换, 宽高比变化, 近远平面到 0/1 深度的映射, 以及零 extent 和非有限时间的拒绝路径.
 
 具备 Vulkan 1.4 GPU 和桌面窗口环境时, 可启用 GPU 回归 (在 `Engine/` 下执行, Release 同理):
 
@@ -49,7 +51,11 @@ ctest --preset Develop
 
 `SNOWYARK_GPU_TESTS` 默认关闭, 可用 `-DSNOWYARK_GPU_TESTS=OFF` 恢复. 开启后 CTest 增加 `SnowyArkGpuTests`, 用 `SnowyArkTests --gpu` 运行, 超时为 30 秒. 测试经 GAL 创建暂存上传的顶点与索引缓冲, 检查无效布局, 缓冲混绑, 偏移, 索引范围, 录制状态重置与重复初始化, 并交替提交 UInt16 矩形和 UInt32 三角形, 覆盖帧槽复用及同尺寸 swapchain 重建. 构建测试目标时同步更新其 Shader 副本. 负向用例会输出预期的引擎错误日志; 未捕获异常, 检查失败或 Vulkan validation 消息会使该 CTest 失败. Develop 启用 validation 和同步检查, Release 不启用.
 
+Uniform 用例检查分配大小, 初始数据与写入边界, 布局重复编号和阶段, 集合中的空指针 / 错误用途 / 缺失或未知 binding / 无效范围, 创建管线身份不匹配, 缺失资源的 draw, 以及重新绑定管线后的状态重置. 每帧依据已完成的槽更新独立 UBO, 并通过真实 GPU 提交覆盖复用和重建.
+
 这些测试未注入上传 fence 等待失败或设备丢失, 不覆盖 Application 故障清理, 真实窗口 resize / 最小化恢复, 不支持所需特性的 GPU 或低于 Vulkan 1.4 的 loader. GPU 测试检查提交行为和 validation, 不比较画面像素; 画面和窗口交互仍需启动编辑器另行验证.
+
+复用旧 Ninja 构建树时, 若头文件修改后相关调用方没有重新编译, 先用 `ninja -C Build/Develop -t deps` 检查依赖记录. 旧对象若没有头文件依赖, 运行 `cmake --build Build/Develop --clean-first`, Release 同理, 再运行测试; 新编译的对象应包含相应头文件依赖. 仅重新链接不能修复旧对象的类型布局.
 
 ## C++ 格式化
 

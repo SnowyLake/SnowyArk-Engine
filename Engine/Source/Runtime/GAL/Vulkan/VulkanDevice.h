@@ -26,6 +26,8 @@ public:
     std::unique_ptr<SwapChain> CreateSwapChain(const Window& window) override;
     std::unique_ptr<PipelineState> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
     std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc) override;
+    std::unique_ptr<ResourceSet> CreateResourceSet(const PipelineState& pipeline, std::span<const UniformBufferBinding> bindings) override;
+    uint32_t GetFrameCount() const override;
     CommandBuffer* BeginFrame(SwapChain& swapChain) override;
     void EndFrame(SwapChain& swapChain) override;
     void WaitIdle() override;

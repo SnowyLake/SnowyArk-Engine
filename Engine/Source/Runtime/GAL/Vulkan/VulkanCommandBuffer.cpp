@@ -3,12 +3,13 @@
 #include <Runtime/Core/Log.h>
 #include <Runtime/GAL/Vulkan/VulkanBuffer.h>
 #include <Runtime/GAL/Vulkan/VulkanPipelineState.h>
+#include <Runtime/GAL/Vulkan/VulkanResourceSet.h>
 
 namespace SnowyArk
 {
 
-VulkanCommandBuffer::VulkanCommandBuffer(const vk::CommandBuffer commandBuffer, const vk::Device device, const uint32_t maxVertexBindings)
-    : m_Device(device), m_MaxVertexBindings(maxVertexBindings), m_CommandBuffer(commandBuffer)
+VulkanCommandBuffer::VulkanCommandBuffer(const vk::CommandBuffer commandBuffer, const vk::Device device, const uint32_t maxVertexBindings, const uint32_t frameIndex)
+    : m_Device(device), m_MaxVertexBindings(maxVertexBindings), m_FrameIndex(frameIndex), m_CommandBuffer(commandBuffer)
 {
 }
 
@@ -18,6 +19,13 @@ void VulkanCommandBuffer::BindTarget(const vk::Image image, const vk::ImageView 
     m_ImageView = imageView;
     m_Extent = extent;
     m_BoundIndexCount = 0;
+    m_Pipeline = nullptr;
+    m_ResourcesBound = false;
+}
+
+uint32_t VulkanCommandBuffer::GetFrameIndex() const
+{
+    return m_FrameIndex;
 }
 
 vk::CommandBuffer VulkanCommandBuffer::GetHandle() const
@@ -102,8 +110,33 @@ void VulkanCommandBuffer::EndRendering()
 
 void VulkanCommandBuffer::SetPipeline(const PipelineState& pipelineState)
 {
-    const auto& vulkanPipeline = dynamic_cast<const VulkanPipelineState&>(pipelineState);
-    m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline.GetPipeline());
+    const auto* vulkanPipeline = dynamic_cast<const VulkanPipelineState*>(&pipelineState);
+    if (vulkanPipeline == nullptr || vulkanPipeline->GetDevice() != m_Device)
+    {
+        Log::Fatal("Pipeline must belong to this command buffer's device.");
+    }
+    m_CommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vulkanPipeline->GetPipeline());
+    m_Pipeline = vulkanPipeline;
+    m_ResourcesBound = false;
+}
+
+void VulkanCommandBuffer::SetResourceSet(const ResourceSet& resources)
+{
+    const auto* set = dynamic_cast<const VulkanResourceSet*>(&resources);
+    if (set == nullptr || m_Pipeline == nullptr || &set->GetPipeline() != m_Pipeline)
+    {
+        Log::Fatal("Resource set must be bound with its creating pipeline.");
+    }
+    m_CommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Pipeline->GetLayout(), 0, set->GetHandle(), {});
+    m_ResourcesBound = true;
+}
+
+void VulkanCommandBuffer::ValidateResources() const
+{
+    if (m_Pipeline == nullptr || (!m_Pipeline->GetUniformBindings().empty() && !m_ResourcesBound))
+    {
+        Log::Fatal("Draw requires a pipeline and all declared uniform bindings.");
+    }
 }
 
 void VulkanCommandBuffer::SetViewport(const Viewport& viewport)
@@ -172,11 +205,13 @@ void VulkanCommandBuffer::SetIndexBuffer(const Buffer& buffer, const IndexType i
 
 void VulkanCommandBuffer::Draw(const uint32_t vertexCount, const uint32_t instanceCount)
 {
+    ValidateResources();
     m_CommandBuffer.draw(vertexCount, instanceCount, 0, 0);
 }
 
 void VulkanCommandBuffer::DrawIndexed(const uint32_t indexCount, const uint32_t instanceCount)
 {
+    ValidateResources();
     if (m_BoundIndexCount == 0 || indexCount > m_BoundIndexCount)
     {
         Log::Fatal("Indexed draw requires a bound index buffer with enough indices.");

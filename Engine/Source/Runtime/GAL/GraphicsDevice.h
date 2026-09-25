@@ -11,11 +11,13 @@ namespace SnowyArk
 class Buffer;
 class CommandBuffer;
 class PipelineState;
+class ResourceSet;
 class SwapChain;
 class Window;
 struct BufferDesc;
 struct GraphicsPipelineDesc;
 struct WindowNativeHandle;
+struct UniformBufferBinding;
 
 class GraphicsDevice
 {
@@ -33,15 +35,24 @@ public:
     /// Creates a swapchain for the given window. `window` must remain alive for the lifetime of the returned swapchain.
     virtual std::unique_ptr<SwapChain> CreateSwapChain(const Window& window) = 0;
 
-    /// Creates a graphics pipeline from the supplied description. `desc.shaderSpirv`, `desc.vertexBindings`, and `desc.vertexAttributes` are borrowed only for this call.
-    /// Invalid vertex layouts, missing shader code or entry names, and backend failures throw.
+    /// Creates a graphics pipeline. Shader code and all vertex/uniform layout spans are borrowed only for this call.
+    /// Invalid layouts or winding, missing shader code or entry names, and backend failures throw; shader/layout agreement remains the caller's responsibility.
     virtual std::unique_ptr<PipelineState> CreateGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
 
-    /// Creates a device-local buffer and uploads `desc.initialData` before returning.
+    /// Creates a device-local Vertex/Index buffer with a synchronous upload, or a host-visible coherent Uniform buffer.
     /// Synchronous initialization API; may block on earlier GPU work. `desc.initialData` is borrowed only for this call.
-    /// Returns null when `initialData` is empty. The buffer must be destroyed before this device, after any GPU use has finished.
+    /// Empty Vertex/Index data returns null. Uniform size must be nonzero; optional initial data must fit and unwritten bytes start at zero.
+    /// The buffer must be destroyed before this device, after any GPU use has finished.
     /// Invalid usage and backend failures throw. An upload failure requires application cleanup before any further rendering.
     virtual std::unique_ptr<Buffer> CreateBuffer(const BufferDesc& desc) = 0;
+
+    /// Creates immutable set 0 bindings matching every uniform binding of `pipeline` exactly once.
+    /// Requires same-device Uniform buffers, nonzero in-range sizes and device-aligned offsets. Invalid descriptions throw.
+    /// Pipeline and buffers are borrowed until set destruction; destroy the set after GPU completion and before those objects/device.
+    virtual std::unique_ptr<ResourceSet> CreateResourceSet(const PipelineState& pipeline, std::span<const UniformBufferBinding> bindings) = 0;
+
+    /// Returns the fixed number of in-flight slots for allocating independently writable per-frame resources.
+    virtual uint32_t GetFrameCount() const = 0;
 
     /// Acquires the next swapchain image and begins recording.
     /// Returns a borrowed command buffer valid until EndFrame, the next BeginFrame on this device, swapchain recreation, or Shutdown. Returns null when this frame must be skipped.
